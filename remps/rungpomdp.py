@@ -1,19 +1,9 @@
-import gym
-import matplotlib.pyplot as plt
 import numpy as np
-from remps.envs.MountainCarEnv import MountainCarConfEnv
-from remps.envs.MountainCarEnvV2 import MountainCarEnv as mountainCarv2
 from remps.envs.CartPoleEnv import CartPoleEnv
-from remps.envs.MountainCarGp import MountainCarEnv as MountainCarEnvGp
 from remps.envs.Chain import NChainEnv
-from remps.envs.puddleworld_conf_env import PuddleWorld
 
 # Model approximators
-from remps.gp.gpManager import GpManager
-from remps.model_approx.MountainCarActionNoise import MountainCarDummyApprox
-from remps.model_approx.cartPoleModel import CartPoleModel
 from remps.model_approx.CartPoleActionNoise import CartPoleModel as CartPoleActionNoise
-from remps.model_approx.PuddleWorldDummyApprox import PuddleWorldModel
 from remps.model_approx.NNModel import NNModel
 from remps.model_approx.ChainModel import ChainModel
 
@@ -21,39 +11,15 @@ from remps.model_approx.ChainModel import ChainModel
 from baselines import logger
 from baselines.common.misc_util import set_global_seeds
 
-import tensorflow as tf
-
-# debug
-from tensorflow.python import debug as tf_debug
-
-import tensorflow.contrib.slim as slim
-
-from remps.algo.policyGradientGPOMDP import GPOMDPOptimizer as gpomdp
-from remps.algo.pgReinforce import ReinforceOptimizer as reinforce
-
-# model optimizers
-from remps.algo.modelGPOMDP import GPOMDPmodelOptimizer
-from remps.algo.modelReinforce import ReinforceOptimizer
-
+# policy
 from remps.policy.MLPDiscrete import MLPDiscrete
 from remps.policy.OneParamPolicy import OneParam
-import remps.runners.GPOMDPrunner as runner
-import remps.runners.p_remps_runner as premps_runner
-import remps.runners.GPOMDPModelRunner as modelRunner
 import remps.runners.gpomdp_runner as gpomdp_runner
-
-import remps.test.makePerformanceGrid as gridRunner
-from remps.test.testGp import testGp
-import remps.runners.modelPolicyRunner as modelPolicyRunner
-from remps.algo.offPGPOMDP import offPGPOMDPOptimizer as offPolicyGPOMDPOptimizer
-from remps.algo.offPoffMModelGPOMDP import offPoffMGPOMDPmodelOptimizer
 
 from datetime import datetime
 
-from collections import deque
-
 import argparse
-from remps.utils.utils import boolean_flag, make_session
+from remps.utils.utils import boolean_flag
 import os.path
 
 # Simulation parameters
@@ -104,16 +70,6 @@ def runExp(
     omega = np.random.rand()
     set_global_seeds(seed)
     # get the mdp to configure
-    if env_id == 0:
-        env = MountainCarConfEnv(max_steps=max_steps)
-        env_name = "mountainCar"
-        if use_gp_env:
-            gp_env = MountainCarEnvGp(
-                noise_std=noise_std,
-                max_steps=max_steps,
-                reward_type=reward_type,
-                n_actions=n_actions,
-            )
     if env_id == 1:
         env = CartPoleEnv(max_steps=max_steps)
         env_name = "cartPole"

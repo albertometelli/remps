@@ -3,7 +3,7 @@
 # Ask git the project root folder
 ROOT=`git rev-parse --show-toplevel`
 
-python ./cmdp/rungpomdp.py --no-render \
+python ./remps/rungpomdp.py --no-render \
                                      --train-model-policy \
                                      --no-restore-variables \
                                      --no-save-variables \
@@ -11,7 +11,7 @@ python ./cmdp/rungpomdp.py --no-render \
                                      --iteration-number 2000  \
                                      --omega 8 \
                                      --reward-type 3 \
-                                     --env-id 1 \
+                                     --env-id 2 \
                                      --n-actions 2 \
                                      --n-trajectories 250 \
                                      --max-steps 100 \
