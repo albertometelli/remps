@@ -102,3 +102,12 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# MacOsx files
+.DS_STORE
+
+# logs
+tf_logs
+
+# idea files
+.idea
