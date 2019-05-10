@@ -1,7 +1,8 @@
+import time
+
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-import time
 
 
 def plot(reward_mean, reward_std, EVAL_FREQ=5):

@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
-import sys, gym, time
+import sys
+import time
+
+import gym
 from envs.MountainCarEnvV2 import MountainCarEnv
 
 #

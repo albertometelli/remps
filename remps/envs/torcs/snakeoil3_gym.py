@@ -52,11 +52,12 @@
 # sufficient for getting around most tracks.
 # Try `snakeoil.py --help` to get started.
 
+import getopt
+import os
+
 # for Python3-based torcs python robot client
 import socket
 import sys
-import getopt
-import os
 import time
 
 PI = 3.14159265359

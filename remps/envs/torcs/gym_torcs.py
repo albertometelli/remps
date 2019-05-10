@@ -1,14 +1,15 @@
-import gym
-from gym import spaces
+import collections as col
+import copy
+import os
+import time
+
 import numpy as np
+
+import gym
 
 # from os import path
 import snakeoil3_gym as snakeoil3
-import numpy as np
-import copy
-import collections as col
-import os
-import time
+from gym import spaces
 
 LAUNCH_TORCS = "torcs -T &"
 

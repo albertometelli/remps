@@ -1,27 +1,27 @@
+import copy
+import os.path
+import time
+from collections import deque
+from contextlib import contextmanager
+from datetime import datetime
+from multiprocessing import Event, Process, Queue
+from multiprocessing.pool import Pool
+
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-import copy
-
-# debug
-from tensorflow.python import debug as tf_debug
 import tensorflow.contrib.slim as slim
+from tensorflow.python import debug as tf_debug
+
+import baselines.common.tf_util as U
+from baselines import logger
+from baselines.common import colorize
+from baselines.common.tf_util import GetFlat, SetFromFlat
+from remps.algo.gradientDescent import Adam
 from remps.algo.remps import REPMS
 from remps.policy.MLPDiscrete import MLPDiscrete
 from remps.runners.envRunner import runEnv
-from datetime import datetime
-from collections import deque
-import os.path
-from remps.algo.gradientDescent import Adam
-import baselines.common.tf_util as U
-from baselines.common.tf_util import GetFlat, SetFromFlat
 from remps.sampler.parallelSampler2 import SamplingWorker
-from multiprocessing.pool import Pool
-from multiprocessing import Process, Queue, Event
-from baselines import logger
-from baselines.common import colorize
-from contextlib import contextmanager
-import time
 
 
 def trainModelPolicy(

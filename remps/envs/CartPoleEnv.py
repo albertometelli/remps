@@ -3,12 +3,14 @@ Classic cart-pole system implemented by Rich Sutton et al.
 Copied from http://incompleteideas.net/sutton/book/code/pole.c
 permalink: https://perma.cc/C9ZM-652R
 """
-from remps.envs.cmdp import CMDP
 import math
-import gym
-from gym import spaces, logger
-from gym.utils import seeding
+
 import numpy as np
+
+import gym
+from gym import logger, spaces
+from gym.utils import seeding
+from remps.envs.cmdp import CMDP
 from remps.envs.steps import CartPoleStep as step
 from remps.envs.steps import CartPoleStepActionNoise as stepActionNoise
 

@@ -1,8 +1,9 @@
+import numpy as np
+
 import gym
 from gym import spaces
 from gym.utils import seeding
 from remps.envs.cmdp import CMDP
-import numpy as np
 
 
 class NChainEnv(gym.Env, CMDP):

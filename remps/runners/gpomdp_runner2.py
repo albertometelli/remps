@@ -1,34 +1,34 @@
-import matplotlib as mpl
-from remps.algo.gpomdp import GPOMDP
+import copy
+import os.path
+import time
+from collections import deque
+from contextlib import contextmanager
+from datetime import datetime
+from multiprocessing import Event, Process, Queue
+from multiprocessing.pool import Pool
 
-mpl.use("Agg")
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-import copy
-
-# debug
-from tensorflow.python import debug as tf_debug
 import tensorflow.contrib.slim as slim
-from remps.algo.remps import REPMS
-from remps.policy.MLPDiscrete import MLPDiscrete
-from remps.runners.envRunner import runEnv
-from datetime import datetime
-from collections import deque
-import os.path
-from remps.algo.gradientDescent import Adam
+from tensorflow.python import debug as tf_debug
+
 import baselines.common.tf_util as U
-from remps.utils.utils import get_default_tf_dtype
-from baselines.common.tf_util import GetFlat, SetFromFlat
-from remps.sampler.trajectorySampler import SamplingWorker
-from multiprocessing.pool import Pool
-from multiprocessing import Process, Queue, Event
 from baselines import logger
 from baselines.common import colorize
-from contextlib import contextmanager
-import time
+from baselines.common.tf_util import GetFlat, SetFromFlat
+from remps.algo.gpomdp import GPOMDP
+from remps.algo.gradientDescent import Adam
+from remps.algo.remps import REPMS
 from remps.envs.torcs.gym_torcs import TorcsEnv
+from remps.policy.MLPDiscrete import MLPDiscrete
+from remps.runners.envRunner import runEnv
 from remps.sampler.fittingSampler import FittingSampler
+from remps.sampler.trajectorySampler import SamplingWorker
+from remps.utils.utils import get_default_tf_dtype
+
+mpl.use("Agg")
 
 
 def collectData(

@@ -7,15 +7,17 @@ Then matches the distributions minimizing the KL between the p and the induced d
 Follows the rllab implementation
 """
 
+from copy import copy
+
+import numpy as np
+import scipy.optimize
 import tensorflow as tf
+from tensorflow.contrib.opt import ScipyOptimizerInterface
+
 import baselines
 import baselines.common.tf_util as U
-import scipy.optimize
-
-from tensorflow.contrib.opt import ScipyOptimizerInterface
 from baselines import logger
-import numpy as np
-from copy import copy
+
 
 class REPMS():
     """

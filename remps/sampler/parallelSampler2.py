@@ -1,14 +1,16 @@
-from multiprocessing.pool import Pool
-from multiprocessing import Process, Queue, Event
-from baselines import logger
-import baselines.common.tf_util as U
-from baselines.common import set_global_seeds
-import numpy as np
 import os
 import os.path
 import time
-import tensorflow as tf
 from copy import copy
+from multiprocessing import Event, Process, Queue
+from multiprocessing.pool import Pool
+
+import numpy as np
+import tensorflow as tf
+
+import baselines.common.tf_util as U
+from baselines import logger
+from baselines.common import set_global_seeds
 from remps.utils.utils import get_default_tf_dtype
 
 

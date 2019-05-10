@@ -1,7 +1,8 @@
-import numba
-from numba import jit
 import math
+
+import numba
 import numpy as np
+from numba import jit
 
 
 @jit(nopython=True)

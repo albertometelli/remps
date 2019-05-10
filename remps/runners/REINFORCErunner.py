@@ -1,15 +1,15 @@
+import os.path
+from collections import deque
+from datetime import datetime
+
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-
-# debug
-from tensorflow.python import debug as tf_debug
 import tensorflow.contrib.slim as slim
+from tensorflow.python import debug as tf_debug
+
 from algo.pgReinforce import ReinforceOptimizer
 from policy.MLPDiscrete import MLPDiscrete
-from datetime import datetime
-from collections import deque
-import os.path
 
 
 def train(

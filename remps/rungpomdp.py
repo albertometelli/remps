@@ -1,26 +1,24 @@
-import numpy as np
-from remps.envs.CartPoleEnv import CartPoleEnv
-from remps.envs.Chain import NChainEnv
+import argparse
+import os.path
+from datetime import datetime
 
-# Model approximators
-from remps.model_approx.CartPoleActionNoise import CartPoleModel as CartPoleActionNoise
-from remps.model_approx.NNModel import NNModel
-from remps.model_approx.ChainModel import ChainModel
+import numpy as np
+
+import remps.runners.gpomdp_runner as gpomdp_runner
 
 # log
 from baselines import logger
 from baselines.common.misc_util import set_global_seeds
+from remps.envs.CartPoleEnv import CartPoleEnv
+from remps.envs.Chain import NChainEnv
+from remps.model_approx.CartPoleActionNoise import CartPoleModel as CartPoleActionNoise
+from remps.model_approx.ChainModel import ChainModel
+from remps.model_approx.NNModel import NNModel
 
 # policy
 from remps.policy.MLPDiscrete import MLPDiscrete
 from remps.policy.OneParamPolicy import OneParam
-import remps.runners.gpomdp_runner as gpomdp_runner
-
-from datetime import datetime
-
-import argparse
 from remps.utils.utils import boolean_flag
-import os.path
 
 # Simulation parameters
 EVALUATION_STEPS = 10

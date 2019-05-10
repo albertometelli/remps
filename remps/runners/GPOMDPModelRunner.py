@@ -1,20 +1,20 @@
+import os.path
+import time
+from collections import deque
+from datetime import datetime
+
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-import time
-
-# debug
-from tensorflow.python import debug as tf_debug
 import tensorflow.contrib.slim as slim
-from algo.policyGradientGPOMDP import GPOMDPOptimizer
-from policy.MLPDiscrete import MLPDiscrete
-from gp.gpManager import GpManager
-from runners.envRunner import runEnv
-from datetime import datetime
-from collections import deque
-import os.path
-from utils.utils import make_session
+from tensorflow.python import debug as tf_debug
+
 from algo.gradientDescent import Adam
+from algo.policyGradientGPOMDP import GPOMDPOptimizer
+from gp.gpManager import GpManager
+from policy.MLPDiscrete import MLPDiscrete
+from runners.envRunner import runEnv
+from utils.utils import make_session
 
 
 def trainModel(

@@ -1,10 +1,10 @@
-import tensorflow as tf
-import numpy as np
-from remps.utils.logger import log
-from sklearn.utils.validation import check_X_y, check_array
-from remps.model_approx.modelApprox import ModelApprox
-from tensorflow.contrib.distributions import MultivariateNormalFullCovariance as mvn
 import math
+
+import numpy as np
+import tensorflow as tf
+from tensorflow.contrib.distributions import MultivariateNormalFullCovariance as mvn
+
+from remps.model_approx.modelApprox import ModelApprox
 from remps.utils.utils import get_default_tf_dtype
 
 
@@ -38,10 +38,6 @@ class CartPoleModel(ModelApprox):
         length = 0.5  # actually half the pole's length
         polemass_length = masspole * length
         tau = 0.02  # seconds between state updates
-
-        # Angle at which to fail the episode
-        theta_threshold_radians = 12 * 2 * math.pi / 360
-        x_threshold = 2.4
 
         with tf.variable_scope(self.name):
             self.omega = tf.get_variable(

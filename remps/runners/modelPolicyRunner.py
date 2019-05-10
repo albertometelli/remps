@@ -1,27 +1,27 @@
+import copy
+import os.path
+import time
+from collections import deque
+from datetime import datetime
+from multiprocessing import Event, Process, Queue
+from multiprocessing.pool import Pool
+
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-import time
-import copy
-
-# debug
-from tensorflow.python import debug as tf_debug
 import tensorflow.contrib.slim as slim
-from algo.policyGradientGPOMDP import GPOMDPOptimizer
-from policy.MLPDiscrete import MLPDiscrete
-from gp.gpManager import GpManager
-from runners.envRunner import runEnv
-from datetime import datetime
-from collections import deque
-import os.path
-from utils.utils import make_session
-from algo.gradientDescent import Adam
+from tensorflow.python import debug as tf_debug
+
 import baselines.common.tf_util as U
-from baselines.common.tf_util import GetFlat, SetFromFlat
 from algo.fta import FTA
+from algo.gradientDescent import Adam
+from algo.policyGradientGPOMDP import GPOMDPOptimizer
+from baselines.common.tf_util import GetFlat, SetFromFlat
+from gp.gpManager import GpManager
+from policy.MLPDiscrete import MLPDiscrete
+from runners.envRunner import runEnv
 from sampler.FTAparallelSampler import SamplingWorker
-from multiprocessing.pool import Pool
-from multiprocessing import Process, Queue, Event
+from utils.utils import make_session
 
 
 def trainModelPolicy(

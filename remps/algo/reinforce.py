@@ -1,9 +1,10 @@
+import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
-import numpy as np
-from remps.utils.utils import get_tf_optimizer, get_default_tf_dtype, flat_and_pad
+
 import baselines.common.tf_util as U
 from baselines import logger
+from remps.utils.utils import flat_and_pad, get_default_tf_dtype, get_tf_optimizer
 
 
 class REINFORCE:

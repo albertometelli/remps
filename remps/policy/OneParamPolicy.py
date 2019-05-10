@@ -1,5 +1,6 @@
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
+
 from remps.policy.Model import Model
 from remps.utils.utils import get_default_tf_dtype
 

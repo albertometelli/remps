@@ -1,9 +1,9 @@
-import tensorflow as tf
-import numpy as np
-from remps.utils.logger import log
-from sklearn.utils.validation import check_X_y, check_array
-from remps.model_approx.modelApprox import ModelApprox
 import math
+
+import numpy as np
+import tensorflow as tf
+
+from remps.model_approx.modelApprox import ModelApprox
 
 
 class CartPoleModel(ModelApprox):

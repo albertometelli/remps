@@ -1,8 +1,9 @@
-import tensorflow as tf
-import matplotlib.pyplot as plt
-import numpy as np
 import multiprocessing
 import os
+
+import matplotlib.pyplot as plt
+import numpy as np
+import tensorflow as tf
 
 
 def boolean_flag(parser, name, default=False, help=None):

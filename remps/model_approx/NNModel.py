@@ -1,20 +1,12 @@
-import tensorflow as tf
 import numpy as np
-from remps.utils.logger import log
-from sklearn.utils.validation import check_X_y, check_array
-from remps.model_approx.modelApprox import ModelApprox
-from tensorflow.contrib.distributions import MultivariateNormalFullCovariance as mvn
-from tensorflow.contrib.distributions import Normal
-import math
-
-from remps.utils.logger import log
-from sklearn.utils.validation import check_X_y, check_array
-
-# sklearn gp implementation
-import baselines.common.tf_util as U
-from remps.utils.utils import get_default_tf_dtype
+import tensorflow as tf
 from sklearn.model_selection import train_test_split
-import os.path
+from sklearn.utils.validation import check_array, check_X_y
+from tensorflow.contrib.distributions import Normal
+
+import baselines.common.tf_util as U
+from remps.model_approx.modelApprox import ModelApprox
+from remps.utils.utils import get_default_tf_dtype
 
 
 def reduce_std(x, axis, dtype=tf.float32):

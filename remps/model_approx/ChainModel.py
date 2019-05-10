@@ -1,7 +1,6 @@
-import tensorflow as tf
 import numpy as np
-from remps.utils.logger import log
-from sklearn.utils.validation import check_X_y, check_array
+import tensorflow as tf
+
 from remps.model_approx.modelApprox import ModelApprox
 from remps.utils.utils import get_default_tf_dtype
 
@@ -68,8 +67,6 @@ class ChainModel(ModelApprox):
             )
 
             # similar for action 1
-            # first_states_prob = tf.tile(1-omega*self.param, (tf.shape(states)[0],1))
-            # second_states_prob = tf.tile(omega*self.param, (tf.shape(states)[0],1))
             first_states_prob_s0 = tf.tile(1 - omega, (tf.shape(states)[0], 1))
             first_states_prob_s1 = tf.tile(
                 1 - omega * self.param, (tf.shape(states)[0], 1)
@@ -157,7 +154,6 @@ class ChainModel(ModelApprox):
 
     def setOmega(self, theta):
         pass
-        # self.theta_value = np.matrix(theta)
 
     def set_params(self, theta):
         self.theta_value = theta
