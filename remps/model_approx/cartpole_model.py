@@ -3,10 +3,10 @@ import math
 import numpy as np
 import tensorflow as tf
 
-from remps.model_approx.modelApprox import ModelApprox
+from remps.model_approx.model_approximator import ModelApproximator
 
 
-class CartPoleModel(ModelApprox):
+class CartPoleModel(ModelApproximator):
     def __init__(self, name="cartpole"):
         """
         Parameters
@@ -98,7 +98,7 @@ class CartPoleModel(ModelApprox):
 
         return log_prob, prob
 
-    def storeData(self, X, Y):
+    def store_data(self, X, Y):
         """
         Store training data inside training set
         """
@@ -111,7 +111,7 @@ class CartPoleModel(ModelApprox):
 
         pass
 
-    def getProb(self):
+    def get_probability(self):
         return self.log_prob
 
     def sample_transition(self, x, theta):
@@ -140,10 +140,10 @@ class CartPoleModel(ModelApprox):
     def trainable_vars(self):
         return [self.omega]
 
-    def getOmega(self):
+    def get_omega(self):
         return self.omega
 
-    def setOmega(self, theta):
+    def set_omega(self, theta):
         pass
         # self.theta_value = np.matrix(theta)
 

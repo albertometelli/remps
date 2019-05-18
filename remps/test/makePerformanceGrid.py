@@ -1,8 +1,8 @@
+import gym
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 
-import gym
 from utils.utils import plot
 
 
@@ -51,7 +51,7 @@ def makeGrid(
 
         print("Testing theta: ", theta)
         # set env param
-        env.setParams(theta)
+        env.set_params(theta)
 
         reward_list = list()
 

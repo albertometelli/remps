@@ -59,9 +59,10 @@ import os
 import socket
 import sys
 import time
+from typing import Union, List
 
-PI = 3.14159265359
-N_PARAMS = 17
+import numpy as np
+
 
 data_size = 2 ** 17
 
@@ -82,7 +83,6 @@ ophelp += " --version, -v        Show current version."
 usage = "Usage: %s [ophelp [optargs]] \n" % sys.argv[0]
 usage = usage + ophelp
 version = "20130505-2"
-LAUNCH_TORCS = "torcs -T &"
 
 
 def clip(v, lo, hi):
@@ -134,24 +134,40 @@ def bargraph(x, mn, mx, w, c="X"):
 
 class Client:
     def __init__(
-        self, H=None, p=None, i=None, e=None, t=None, s=None, d=None, vision=False
+        self,
+        H=None,
+        p=3101,
+        i=None,
+        e=None,
+        t=None,
+        s=None,
+        d=None,
+        vision=False,
+        visual=False,
+        n_configurable_parameters=2
     ):
         # If you don't like the option defaults,  change them here.
         self.vision = vision
 
         self.host = "localhost"
-        self.port = 3001
+        self.port = p
         self.sid = "SCR"
-        self.maxEpisodes = 1  # "Maximum number of learning episodes to perform"
+        self.maxEpisodes = 1  # Maximum number of learning episodes to perform
         self.trackname = "unknown"
         self.stage = 3  # 0=Warm-up, 1=Qualifying 2=Race, 3=unknown <Default=3>
         self.debug = False
+        self.so = None
         self.maxSteps = 100000  # 50steps/second
-        self.parse_the_command_line()
+        self.visual = visual
+        self.torcs_command = (
+            "/home/emanuele/opt/bin/torcs -T -p " + str(self.port) + " &"
+        )
+        if self.visual:
+            self.torcs_command = (
+                "/home/emanuele/opt/bin/torcs -p " + str(self.port) + " &"
+            )
         if H:
             self.host = H
-        if p:
-            self.port = p
         if i:
             self.sid = i
         if e:
@@ -164,19 +180,28 @@ class Client:
             self.debug = d
         self.S = ServerState()
         self.R = DriverAction()
-        self.setup_connection()
+        self.configurable_parameters = np.ones(n_configurable_parameters)
 
-    def setup_connection(self):
+    def setParams(self, params: Union[np.array, List]):
+        self.configurable_parameters = params
+
+    def setup_connection(self, start_torcs=False):
         # == Set Up UDP Socket ==
+        if start_torcs:
+            os.system(self.torcs_command)
+
+            time.sleep(1.0)
+            if self.visual:
+                os.system("sh autostart.sh")
+
         try:
             self.so = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         except socket.error as emsg:
-            print("Error: Could not create socket...")
             sys.exit(-1)
         # == Initialize Connection To Server ==
         self.so.settimeout(1)
 
-        n_fail = 1
+        n_fail = 5
         while True:
             # This string establishes track sensor angles! You can customize them.
             # a= "-90 -75 -60 -45 -30 -20 -15 -10 -5 0 5 10 15 20 30 45 60 75 90"
@@ -194,32 +219,27 @@ class Client:
                 sockdata, addr = self.so.recvfrom(data_size)
                 sockdata = sockdata.decode("utf-8")
             except socket.error as emsg:
-                print("Waiting for server on %d............" % self.port)
-                print("Count Down : " + str(n_fail))
                 if n_fail < 0:
-                    print("relaunch torcs")
-                    os.system("pkill torcs")
-                    time.sleep(1.0)
-                    os.system(LAUNCH_TORCS)
+                    os.system(self.torcs_command)
 
                     time.sleep(1.0)
-                    # os.system('sh autostart.sh')
+                    if self.visual:
+                        os.system("sh autostart.sh")
                     n_fail = 1
                 n_fail -= 1
 
             identify = "***identified***"
             if identify in sockdata:
-                print("Client connected on %d.............." % self.port)
                 break
 
         # send car configuration to server
-        params = ""
-        for _ in range(N_PARAMS):
-            params += " " + "0.0"
+        configurable_parameters_str = ""
+        for p in self.configurable_parameters:
+            configurable_parameters_str += str(p) + " "
         try:
-            self.so.sendto(params.encode(), (self.host, self.port))
+            self.so.sendto(configurable_parameters_str.encode(), (self.host, self.port))
         except socket.error as emsg:
-            print("Error, ops")
+            print("Error")
             sys.exit(-1)
 
     def parse_the_command_line(self):
@@ -308,7 +328,7 @@ class Client:
                 return
             elif "***restart***" in sockdata:
                 # What do I do here?
-                print("Server has restarted the race on %d." % self.port)
+                # print("Server has restarted the race on %d." % self.port)
                 # I haven't actually caught the server doing this.
                 self.shutdown()
                 return
@@ -338,15 +358,10 @@ class Client:
     def shutdown(self):
         if not self.so:
             return
-        print(
-            (
-                "Race terminated or %d steps elapsed. Shutting down %d."
-                % (self.maxSteps, self.port)
-            )
-        )
+        self.R.d["exit"] = True
+        self.respond_to_server()
         self.so.close()
         self.so = None
-        # sys.exit() # No need for this really.
 
 
 class ServerState:
@@ -381,16 +396,16 @@ class ServerState:
         """Specialty output for useful ServerState monitoring."""
         out = str()
         sensors = [  # Select the ones you want in the order you want them.
-            #'curLapTime',
-            #'lastLapTime',
+            # 'curLapTime',
+            # 'lastLapTime',
             "stucktimer",
-            #'damage',
-            #'focus',
+            # 'damage',
+            # 'focus',
             "fuel",
-            #'gear',
+            # 'gear',
             "distRaced",
             "distFromStart",
-            #'racePos',
+            # 'racePos',
             "opponents",
             "wheelSpinVel",
             "z",
@@ -625,7 +640,6 @@ class DriverAction:
                 out += " ".join([str(x) for x in v])
             out += ")"
         return out
-        return out + "\n"
 
     def fancyout(self):
         """Specialty output for useful monitoring of bot's effectors."""
@@ -672,7 +686,7 @@ def drive_example(c):
     target_speed = 200
 
     # Steer To Corner
-    R["steer"] = S["angle"] * 10 / PI
+    R["steer"] = S["angle"] * 10 / np.pi
     # Steer To Center
     R["steer"] -= S["trackPos"] * 0.10
 

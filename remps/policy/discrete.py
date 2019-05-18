@@ -1,11 +1,11 @@
 import numpy as np
 import tensorflow as tf
 
-from remps.policy.Model import Model
+from remps.policy.policy import Policy
 from remps.utils.utils import get_default_tf_dtype
 
 
-class MLPDiscrete(Model):
+class Discrete(Policy):
     """
     MultiLayerPerceptron Discrete policy.
     Parametrized by the input space, the action space and the hidden layer size.

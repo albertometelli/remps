@@ -4,18 +4,18 @@ from datetime import datetime
 
 import numpy as np
 
-import remps.runners.reps_runner as reps_runner
-
 # log
 from baselines import logger
 from baselines.common.misc_util import set_global_seeds
-from remps.envs.CartPoleEnv import CartPoleEnv
-from remps.envs.Chain import NChainEnv
-from remps.model_approx.CartPoleActionNoise import CartPoleModel as CartPoleActionNoise
-from remps.model_approx.ChainModel import ChainModel
-from remps.model_approx.NNModel import NNModel
-from remps.policy.MLPDiscrete import MLPDiscrete
-from remps.policy.OneParamPolicy import OneParam
+
+import remps.runners.remps_runner as reps_runner
+from remps.envs.cartpole import CartPole
+from remps.envs.chain import NChainEnv
+from remps.model_approx.cartpole_model_action_noise import CartPoleModel as CartPoleActionNoise
+from remps.model_approx.chain_model import ChainModel
+from remps.model_approx.nn_model import NNModel
+from remps.policy.discrete import Discrete
+from remps.policy.one_parameter_policy import OneParameterPolicy
 from remps.utils.utils import boolean_flag
 
 # Simulation parameters
@@ -28,129 +28,70 @@ MAX_STEPS = 500
 
 
 def runExp(
-    test,
-    train,
     checkpoint_file,
     logdir,
     omega,
-    noise_std,
     max_steps,
-    train_model,
     hidden_layer_size,
     n_trajectories,
-    gradient_estimator,
-    reward_type,
     file_suffix,
     restore_variables,
     overwrite_log,
     n_actions,
     env_id,
-    policy_optimizer,
-    make_grid,
-    test_gp,
-    use_gp_env,
-    model_gradient_estimator,
-    use_gp_approx,
     train_model_policy,
-    test_model_policy,
-    use_remps,
-    use_fta,
-    use_premps,
     seed,
     exact,
     **kwargs
 ):
 
-    policy_graph = None
-
-    gp_env = None
     set_global_seeds(seed)
+
+    # TODO:
+    # something like:
+    # if omega is none -> random init, else use omega
     omega = np.random.rand()
 
+    # setup environments and policy
     if env_id == 1:
-        env = CartPoleEnv(max_steps=max_steps)
+        env = CartPole(max_steps=max_steps)
         env_name = "cartPole"
-    if env_id == 3:
-        env = NChainEnv(max_steps=max_steps)
-        env_name = "chain"
-
-    # only for naming purposes
-    if use_gp_env:
-        env_name += "_gp"
-
-    # change the parameter of the transition function, in this case it is the max_speed
-    env.setParams(omega)
-
-    # policy initialization
-    if env_id != 3:
-        policy = MLPDiscrete(
+        policy = Discrete(
             env.observation_space.shape[0], env.action_space.n, hidden_layer_size
         )
+        model_approx = CartPoleActionNoise()
+        if not exact:
+            model_approx = NNModel(env.observation_space_size, 1, name=env_name)
+    elif env_id == 3:
+        env = NChainEnv(max_steps=max_steps)
+        env_name = "chain"
+        policy = OneParameterPolicy()
+        model_approx = ChainModel()
     else:
-        policy = OneParam()
-    algo_name = ""
-    if use_remps:
-        algo_name = "REMPS"
-    if use_premps:
-        algo_name = "PREMPS"
-    if use_fta:
-        algo_name = "FTA"
+        raise ValueError
 
-    if train_model_policy:
-        experiment_name = (
-            algo_name
-            + "/"
-            + env_name
-            + "-n-actions"
-            + str(n_actions)
-            + "-omega"
-            + str(omega)
-            + "-traj"
-            + str(n_trajectories)
-            + "-DualReg"
-            + str(kwargs["dual_reg"])
-            + "PolReg-"
-            + str(kwargs["policy_reg"])
-            + "TrainingSet"
-            + str(kwargs["training_set_size"])
-        )
-    else:
-        if not train_model:
-            experiment_name = (
-                env_name
-                + "/rewardType"
-                + str(reward_type)
-                + "/GradientEstimator"
-                + gradient_estimator
-                + "/n-actions"
-                + str(n_actions)
-                + "/optimizer"
-                + policy_optimizer
-                + "/omega"
-                + str(omega)
-                + "-HiddenLayerSize"
-                + str(hidden_layer_size)
-                + "-traj"
-                + str(n_trajectories)
-            )
-        else:
-            experiment_name = (
-                env_name
-                + "/rewardType"
-                + str(reward_type)
-                + "/ModelGradientEstimator"
-                + model_gradient_estimator
-                + "/n-actions"
-                + str(n_actions)
-                + "/Policy-optimizer"
-                + policy_optimizer
-                + "/omega"
-                + str(omega)
-                + "-HiddenLayerSize"
-                + str(hidden_layer_size)
-                + "-traj"
-                + str(n_trajectories)
-            )
+    # initialize environment params
+    env.set_params(omega)
+
+    algo_name = "REMPS"
+
+    experiment_name = (
+        algo_name
+        + "/"
+        + env_name
+        + "-n-actions"
+        + str(n_actions)
+        + "-omega"
+        + str(omega)
+        + "-traj"
+        + str(n_trajectories)
+        + "-DualReg"
+        + str(kwargs["dual_reg"])
+        + "PolReg-"
+        + str(kwargs["policy_reg"])
+        + "TrainingSet"
+        + str(kwargs["training_set_size"])
+    )
 
     if exact:
         experiment_name = experiment_name + "exact"
@@ -160,18 +101,12 @@ def runExp(
         experiment_name = experiment_name + "-" + file_suffix
 
     if logdir is None:
-        if train_model:
-            logdir = "tf_logs/model_logs/" + experiment_name + "/"
-        else:
-            if train_model_policy:
-                logdir = (
-                    "tf_logs/model_policy_logs/"
-                    + experiment_name
-                    + "eps-"
-                    + str(kwargs["epsilon"])
-                )
-            else:
-                logdir = "tf_logs/" + experiment_name + "/"
+            logdir = (
+                "tf_logs/model_policy_logs/"
+                + experiment_name
+                + "eps-"
+                + str(kwargs["epsilon"])
+            )
 
     now = datetime.now()
 
@@ -193,35 +128,23 @@ def runExp(
         else:
             os.makedirs(checkpoint_file)
 
-    if train:
-        checkpoint_file += "model.ckpt"
+    checkpoint_file += "model.ckpt"
 
     print("Logs will be saved into: " + logdir)
     print("Checkpoints will be saved into: " + checkpoint_file)
 
-    if train_model_policy:
-        if env_id == 0:
-            model_approx = NNModel(env.observation_space_size, 1, name=env_name)
-        if env_id == 1:
-            model_approx = CartPoleActionNoise()
-            if not exact:
-                model_approx = NNModel(env.observation_space_size, 1, name=env_name)
-        if env_id == 3:
-            model_approx = ChainModel()
-        print("Training model and Policy...........")
-        if use_remps:
-            reps_runner.trainModelPolicy(
-                env=env,
-                policy=policy,
-                model_approximator=model_approx,
-                n_trajectories=n_trajectories,
-                checkpoint_file=checkpoint_file,
-                logdir=logdir,
-                omega=omega,
-                restore_variables=restore_variables,
-                exact=exact,
-                **kwargs
-            )
+    reps_runner.train(
+        env=env,
+        policy=policy,
+        model_approximator=model_approx,
+        n_trajectories=n_trajectories,
+        checkpoint_file=checkpoint_file,
+        logdir=logdir,
+        omega=omega,
+        restore_variables=restore_variables,
+        exact=exact,
+        **kwargs
+    )
 
 
 def parse_args():

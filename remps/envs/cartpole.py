@@ -6,16 +6,21 @@ permalink: https://perma.cc/C9ZM-652R
 import math
 
 import numpy as np
-
-import gym
-from gym import logger, spaces
+from gym import spaces
 from gym.utils import seeding
-from remps.envs.cmdp import CMDP
-from remps.envs.steps import CartPoleStep as step
+
+from remps.envs.confmdp import ConfMDP
 from remps.envs.steps import CartPoleStepActionNoise as stepActionNoise
 
 
-class CartPoleEnv(gym.Env, CMDP):
+class CartPole(ConfMDP):
+
+    def get_params_bounds(self) -> np.array:
+        pass
+
+    def get_params(self) -> np.array:
+        pass
+
     metadata = {"render.modes": ["human", "rgb_array"], "video.frames_per_second": 50}
 
     def __init__(self, max_steps=100):
@@ -54,7 +59,7 @@ class CartPoleEnv(gym.Env, CMDP):
 
         self.action_space = spaces.Discrete(2)
         self.observation_space = spaces.Box(-high, high)
-        self.observation_space_size = 4
+        self.observation_space_dim = 4
         self.action_space_size = 2
         self.n_actions = 2
 
@@ -66,11 +71,15 @@ class CartPoleEnv(gym.Env, CMDP):
         self.max_steps = max_steps
         self.steps = 0
 
+    @property
+    def observation_space_size(self):
+        return self.observation_space_dim
+
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def setParams(self, *args):
+    def set_params(self, *args):
         if np.isscalar(args[0]):
             init_params = args[0]
             self.force_mag = init_params

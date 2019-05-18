@@ -6,17 +6,17 @@ from datetime import datetime
 from multiprocessing import Event, Process, Queue
 from multiprocessing.pool import Pool
 
+import baselines.common.tf_util as U
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
+from baselines.common.tf_util import GetFlat, SetFromFlat
 from tensorflow.python import debug as tf_debug
 
-import baselines.common.tf_util as U
 from algo.fta import FTA
 from algo.gradientDescent import Adam
 from algo.policyGradientGPOMDP import GPOMDPOptimizer
-from baselines.common.tf_util import GetFlat, SetFromFlat
 from gp.gpManager import GpManager
 from policy.MLPDiscrete import MLPDiscrete
 from runners.envRunner import runEnv
@@ -134,7 +134,7 @@ def trainModelPolicy(
         reward_std_to_plot = list()
 
         # set env params
-        env.setParams(theta)
+        env.set_params(theta)
 
         get_parameters = U.GetFlat(agent.get_policy_params())
 
@@ -248,7 +248,7 @@ def trainModelPolicy(
                 timesteps,
             )
 
-            env.setParams(theta)
+            env.set_params(theta)
 
             if n % 5 == 0:
                 # print statistics
@@ -355,4 +355,4 @@ def collectData(
     #     input = np.vstack((input,x))
     #     target = np.vstack((target,y))
 
-    agent.storeData(x, y)
+    agent.store_data(x, y)

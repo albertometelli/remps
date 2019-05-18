@@ -1,11 +1,11 @@
+import baselines.common.tf_util as U
 import numpy as np
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
 from sklearn.utils.validation import check_array, check_X_y
 from tensorflow.contrib.distributions import Normal
 
-import baselines.common.tf_util as U
-from remps.model_approx.modelApprox import ModelApprox
+from remps.model_approx.model_approximator import ModelApproximator
 from remps.utils.utils import get_default_tf_dtype
 
 
@@ -17,8 +17,8 @@ def reduce_std(x, axis, dtype=tf.float32):
     return tf.sqrt(var)
 
 
-class NNModel(ModelApprox):
-    def getProb(self):
+class NNModel(ModelApproximator):
+    def get_probability(self):
         return self.prob
 
     def __init__(self, state_dim, param_dim, name="NN", training_set_size=4000):
@@ -240,7 +240,7 @@ class NNModel(ModelApprox):
             self.valid_loss_summary = tf.summary.scalar("ValidLoss", self.valid_loss)
         return self.log_prob, self.prob
 
-    def storeData(self, X, Y, normalize_data=False, update_statistics=True):
+    def store_data(self, X, Y, normalize_data=False, update_statistics=True):
         """
         Store training data inside training set
         """
@@ -370,10 +370,10 @@ class NNModel(ModelApprox):
             weights = np.load(self.folder + "weights.npy")
             U.SetFromFlat(self.fitting_vars, dtype=self.dtype)(weights)
 
-    def getOmega(self):
+    def get_omega(self):
         return self.omega
 
-    def setOmega(self):
+    def set_omega(self):
         pass
 
     def get_feed_dict(self):

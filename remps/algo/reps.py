@@ -9,14 +9,13 @@ Follows the rllab implementation
 
 from copy import copy
 
+import baselines
+import baselines.common.tf_util as U
 import numpy as np
 import scipy.optimize
 import tensorflow as tf
-from tensorflow.contrib.opt import ScipyOptimizerInterface
-
-import baselines
-import baselines.common.tf_util as U
 from baselines import logger
+from tensorflow.contrib.opt import ScipyOptimizerInterface
 
 
 class REPMS():

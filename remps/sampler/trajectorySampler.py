@@ -5,12 +5,12 @@ from copy import copy
 from multiprocessing import Event, Process, Queue
 from multiprocessing.pool import Pool
 
+import baselines.common.tf_util as U
 import numpy as np
 import tensorflow as tf
-
-import baselines.common.tf_util as U
 from baselines import logger
 from baselines.common import set_global_seeds
+
 from remps.utils.utils import get_default_tf_dtype
 
 
@@ -50,7 +50,7 @@ class SamplingWorker(Process):
                 # self.event.clear()  # Upon message receipt, mark as read
                 message, policy_ws, theta = self.inputQ.get()  # Pop message
                 if message == "sample":
-                    self.env.setParams(theta)
+                    self.env.set_params(theta)
                     # Set weights
                     set_parameters(policy_ws)
                     # Do sampling

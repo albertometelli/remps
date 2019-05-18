@@ -1,11 +1,11 @@
 import numpy as np
 import tensorflow as tf
 
-from remps.model_approx.modelApprox import ModelApprox
+from remps.model_approx.model_approximator import ModelApproximator
 from remps.utils.utils import get_default_tf_dtype
 
 
-class ChainModel(ModelApprox):
+class ChainModel(ModelApproximator):
     def __init__(self, name="chain"):
         """
         Parameters
@@ -106,7 +106,7 @@ class ChainModel(ModelApprox):
 
         return self.log_prob, self.prob
 
-    def storeData(self, X, Y):
+    def store_data(self, X, Y):
         """
         Store training data inside training set
         """
@@ -119,7 +119,7 @@ class ChainModel(ModelApprox):
 
         pass
 
-    def getProb(self):
+    def get_probability(self):
         return self.log_prob
 
     def sample_transition(self, x, theta):
@@ -146,13 +146,13 @@ class ChainModel(ModelApprox):
     def from_sigm_to_omega(self, param):
         return -np.log(self.width / (param - self.offset) - 1) / self.k
 
-    def getOmega(self):
+    def get_omega(self):
         return self.width * (1 / (1 + tf.exp(-self.k * self.omega))) + self.offset
 
     def get_variable_summaries(self):
-        return [tf.summary.scalar("Omega", tf.norm(self.getOmega()))]
+        return [tf.summary.scalar("Omega", tf.norm(self.get_omega()))]
 
-    def setOmega(self, theta):
+    def set_omega(self, theta):
         pass
 
     def set_params(self, theta):

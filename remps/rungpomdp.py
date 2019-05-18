@@ -4,20 +4,20 @@ from datetime import datetime
 
 import numpy as np
 
-import remps.runners.gpomdp_runner as gpomdp_runner
-
 # log
 from baselines import logger
 from baselines.common.misc_util import set_global_seeds
-from remps.envs.CartPoleEnv import CartPoleEnv
-from remps.envs.Chain import NChainEnv
-from remps.model_approx.CartPoleActionNoise import CartPoleModel as CartPoleActionNoise
-from remps.model_approx.ChainModel import ChainModel
-from remps.model_approx.NNModel import NNModel
+
+import remps.runners.gpomdp_runner as gpomdp_runner
+from remps.envs.cartpole import CartPole
+from remps.envs.chain import NChainEnv
+from remps.model_approx.cartpole_model_action_noise import CartPoleModel as CartPoleActionNoise
+from remps.model_approx.chain_model import ChainModel
+from remps.model_approx.nn_model import NNModel
 
 # policy
-from remps.policy.MLPDiscrete import MLPDiscrete
-from remps.policy.OneParamPolicy import OneParam
+from remps.policy.discrete import Discrete
+from remps.policy.one_parameter_policy import OneParameterPolicy
 from remps.utils.utils import boolean_flag
 
 # Simulation parameters
@@ -69,20 +69,20 @@ def runExp(
     set_global_seeds(seed)
     # get the mdp to configure
     if env_id == 1:
-        env = CartPoleEnv(max_steps=max_steps)
+        env = CartPole(max_steps=max_steps)
         env_name = "cartPole"
     if env_id == 2:
         env = NChainEnv(max_steps=max_steps)
         env_name = "Chain"
 
     # change the parameter of the transition function, in this case it is the max_speed
-    env.setParams(omega)
+    env.set_params(omega)
 
     # policy initialization
     if env_id == 2:
-        policy = OneParam()
+        policy = OneParameterPolicy()
     else:
-        policy = MLPDiscrete(
+        policy = Discrete(
             env.observation_space.shape[0], env.action_space.n, hidden_layer_size
         )
 

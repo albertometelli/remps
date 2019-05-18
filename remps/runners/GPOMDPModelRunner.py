@@ -129,7 +129,7 @@ def trainModel(
 
     optimizer = model_optimizer(
         model_graph,
-        gpManager.getProb(),
+        gpManager.get_probability(),
         n_trajectories,
         writer,
         model_sess,
@@ -399,4 +399,4 @@ def collectData(
     #     input = np.vstack((input,x))
     #     target = np.vstack((target,y))
 
-    gpManager.storeData(x, y)
+    gpManager.store_data(x, y)

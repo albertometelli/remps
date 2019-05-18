@@ -9,14 +9,13 @@ Follows the rllab implementation
 
 from copy import copy
 
+import baselines
+import baselines.common.tf_util as U
 import numpy as np
 import scipy.optimize
 import tensorflow as tf
-from tensorflow.contrib.opt import ScipyOptimizerInterface
-
-import baselines
-import baselines.common.tf_util as U
 from baselines import logger
+from tensorflow.contrib.opt import ScipyOptimizerInterface
 
 
 class REPMS:
@@ -335,7 +334,7 @@ class REPMS:
         mean_ts = tf.reduce_mean(self.timesteps_ph)
         tf.summary.scalar("Reward", mean_ret)
         tf.summary.scalar("Timesteps", mean_ts)
-        tf.summary.scalar("Omega", tf.reduce_sum(self.model.getOmega()))
+        tf.summary.scalar("Omega", tf.reduce_sum(self.model.get_omega()))
         tf.summary.scalar("KL", d_kl_pq)
         tf.summary.scalar("KL2", d_kl_pq_2)
         self.summary_writer.add_graph(self.sess.graph)
@@ -469,7 +468,7 @@ class REPMS:
         model_loss = self.opt_info["model_loss"]
         state_kernel = self.opt_info["state_kernel"]
         delta_v = self.opt_info["delta_v"]
-        omega_before = self.sess.run(self.model.getOmega())[0]
+        omega_before = self.sess.run(self.model.get_omega())[0]
 
         logger.log("optimizing policy")
         inputs_dict = {
@@ -661,7 +660,7 @@ class REPMS:
         logger.record_tabular("DualAfter", dual_after)
         logger.log("Dual %f -> %f " % (dual_before, dual_after))
 
-        omega_after = self.sess.run(self.model.getOmega())[0]
+        omega_after = self.sess.run(self.model.get_omega())[0]
         logger.record_tabular("OmegaBefore", omega_before)
         logger.log("omega %f -> %f" % (omega_before, omega_after))
         delta_variables = [x - y for (x, y) in zip(variables, variables_before)]

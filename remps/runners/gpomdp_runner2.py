@@ -7,22 +7,22 @@ from datetime import datetime
 from multiprocessing import Event, Process, Queue
 from multiprocessing.pool import Pool
 
+import baselines.common.tf_util as U
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
-from tensorflow.python import debug as tf_debug
-
-import baselines.common.tf_util as U
 from baselines import logger
 from baselines.common import colorize
 from baselines.common.tf_util import GetFlat, SetFromFlat
+from tensorflow.python import debug as tf_debug
+
 from remps.algo.gpomdp import GPOMDP
-from remps.algo.gradientDescent import Adam
+from remps.algo.gradient_descent import Adam
 from remps.algo.remps import REPMS
-from remps.envs.torcs.gym_torcs import TorcsEnv
-from remps.policy.MLPDiscrete import MLPDiscrete
+from remps.envs.torcs.torcs import Torcs
+from remps.policy.discrete import Discrete
 from remps.runners.envRunner import runEnv
 from remps.sampler.fittingSampler import FittingSampler
 from remps.sampler.trajectorySampler import SamplingWorker
@@ -241,7 +241,7 @@ def trainModelPolicy(
         reward_std_to_plot = list()
 
         # set env params
-        env.setParams(omega)
+        env.set_params(omega)
 
         get_parameters = U.GetFlat(agent.get_policy_params())
 

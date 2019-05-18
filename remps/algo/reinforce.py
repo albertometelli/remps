@@ -1,9 +1,9 @@
+import baselines.common.tf_util as U
 import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
-
-import baselines.common.tf_util as U
 from baselines import logger
+
 from remps.utils.utils import flat_and_pad, get_default_tf_dtype, get_tf_optimizer
 
 
@@ -182,7 +182,7 @@ class REINFORCE:
         mean_ts = tf.reduce_mean(self.timesteps_ph)
         ret_sum = tf.summary.scalar("Return", mean_ret)
         ts_sum = tf.summary.scalar("Timesteps", mean_ts)
-        om_sum = tf.summary.scalar("Omega", tf.norm(self.model.getOmega()))
+        om_sum = tf.summary.scalar("Omega", tf.norm(self.model.get_omega()))
         # th_sum = tf.summary.scalar("Theta",tf.norm(self.policy.getTheta()))
         for grad, var in grads_and_vars:
             tf.summary.histogram(var.name, var)
@@ -228,7 +228,7 @@ class REINFORCE:
         actions = np.zeros((obs_flat_and_padded.shape[0], 1))
         actions = np.hstack((actions - 1, actions + 1))
 
-        omega_before = self.sess.run(self.model.getOmega())
+        omega_before = self.sess.run(self.model.get_omega())
         variables_before = U.GetFlat(self.policy.trainable_vars)()
 
         inputs_dict = {
@@ -257,7 +257,7 @@ class REINFORCE:
         self.global_step += 1
         self.summary_writer.add_summary(summary_str, self.global_step)
 
-        omega = self.sess.run(self.model.getOmega())
+        omega = self.sess.run(self.model.get_omega())
         variables_after = U.GetFlat(self.policy.trainable_vars)()
 
         delta_variables = variables_after - variables_before
@@ -294,7 +294,7 @@ class REINFORCE:
         return a
 
     def storeData(self, X, Y, normalize_data=False):
-        self.model.storeData(X, Y, normalize_data)
+        self.model.store_data(X, Y, normalize_data)
         pass
 
     def fit(self):

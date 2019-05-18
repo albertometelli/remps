@@ -1,12 +1,12 @@
-import numpy as np
-
 import gym
+import numpy as np
 from gym import spaces
 from gym.utils import seeding
-from remps.envs.cmdp import CMDP
+
+from remps.envs.confmdp import ConfMDP
 
 
-class NChainEnv(gym.Env, CMDP):
+class NChainEnv(ConfMDP):
     """n-Chain environment
     This game presents moves along a linear chain of states, with two actions:
      0) forward, which moves along the chain but returns no reward
@@ -21,16 +21,28 @@ class NChainEnv(gym.Env, CMDP):
     http://ceit.aut.ac.ir/~shiry/lecture/machine-learning/papers/BRL-2000.pdf
     """
 
+    def get_params_bounds(self) -> np.array:
+        return np.array([[self.slip_min, self.slip_max]])
+
+    @property
+    def observation_space_size(self):
+        return self.observation_space_dim
+
+    def get_params(self) -> np.array:
+        return np.array([self.slip])
+
     def __init__(self, n=2, slip=0.2, small=2, large1=10, large2=8, max_steps=500):
         self.n = n
         self.slip = slip  # probability of 'slipping' an action
+        self.slip_min = 0
+        self.slip_max = 1
         self.small = small  # payout for 'backwards' action
         self.large1 = large1  # payout at end of chain for 'forwards' action
         self.large2 = large2
         self.state = 0  # Start at beginning of the chain
         self.action_space = spaces.Discrete(2)
         self.observation_space = spaces.Discrete(self.n)
-        self.observation_space_size = 2
+        self.observation_space_dim = 2
         self.action_space_size = 2
         self.n_actions = 2
         self.seed()
@@ -38,7 +50,7 @@ class NChainEnv(gym.Env, CMDP):
         self.steps = 0
         self.param = 0.5
 
-    def setParams(self, omega):
+    def set_params(self, omega):
         if np.isscalar(omega):
             self.slip = omega
         else:

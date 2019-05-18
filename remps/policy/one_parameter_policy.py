@@ -1,11 +1,11 @@
 import numpy as np
 import tensorflow as tf
 
-from remps.policy.Model import Model
+from remps.policy.policy import Policy
 from remps.utils.utils import get_default_tf_dtype
 
 
-class OneParam(Model):
+class OneParameterPolicy(Policy):
     """
     Policy defined by one param: theta, prob of action 0
     """

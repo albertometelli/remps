@@ -6,19 +6,19 @@ from datetime import datetime
 from multiprocessing import Event, Process, Queue
 from multiprocessing.pool import Pool
 
+import baselines.common.tf_util as U
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
+from baselines.common.tf_util import GetFlat, SetFromFlat
 from tensorflow.python import debug as tf_debug
 
-import baselines.common.tf_util as U
-from baselines.common.tf_util import GetFlat, SetFromFlat
 from remps.algo.gpomdp import GPOMDP
-from remps.algo.gradientDescent import Adam
+from remps.algo.gradient_descent import Adam
 from remps.algo.remps_chain import REPMS
-from remps.envs.Chain import NChainEnv
-from remps.policy.MLPDiscrete import MLPDiscrete
+from remps.envs.chain import NChainEnv
+from remps.policy.discrete import Discrete
 from remps.runners.envRunner import runEnv
 from remps.sampler.trajectorySampler import SamplingWorker
 
@@ -56,7 +56,7 @@ def trainModelPolicy(
         reward_std_to_plot = list()
 
         # set env params
-        env.setParams(0.8)
+        env.set_params(0.8)
 
         get_policy_params = U.GetFlat(agent.get_policy_params())
 
@@ -127,7 +127,7 @@ def trainModelPolicy(
 
             print("Training requires {:.2f} seconds".format(time.time() - start_time))
 
-            env.setParams(omega)
+            env.set_params(omega)
 
             # print statistics
             print("Training steps: ", n)
@@ -291,7 +291,7 @@ def collectData(
     #     input = np.vstack((input,x))
     #     target = np.vstack((target,y))
 
-    agent.storeData(x, y)
+    agent.store_data(x, y)
 
 
 def make_pi(policy, sess, state_tf, action_size):

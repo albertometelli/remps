@@ -30,7 +30,7 @@ def runEnv(
         targets = np.zeros((bins * n_samples_per_omega, env.observation_space_size))
         i = 0
         for omega in np.linspace(omega_min, omega_max, bins):
-            env.setParams(omega)
+            env.set_params(omega)
             state = np.array(env.reset())
             for t in range(n_samples_per_omega):
                 # sample one action from policy network or at random
@@ -85,7 +85,7 @@ def runEnv(
 
         for state in start_states:
             x, x_dot, a = state
-            env.setParams(a)
+            env.set_params(a)
             newState, reward, done, info = env._step(action, (x, x_dot))
             # append delta state
             next_states.append(newState - np.array([x, x_dot]))
