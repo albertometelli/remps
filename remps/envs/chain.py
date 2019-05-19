@@ -1,3 +1,5 @@
+from typing import Union
+
 import gym
 import numpy as np
 from gym import spaces
@@ -20,6 +22,9 @@ class NChainEnv(ConfMDP):
     A Bayesian Framework for Reinforcement Learning by Malcolm Strens (2000)
     http://ceit.aut.ac.ir/~shiry/lecture/machine-learning/papers/BRL-2000.pdf
     """
+
+    def render(self, mode='human'):
+        pass
 
     def get_params_bounds(self) -> np.array:
         return np.array([[self.slip_min, self.slip_max]])
@@ -50,11 +55,14 @@ class NChainEnv(ConfMDP):
         self.steps = 0
         self.param = 0.5
 
-    def set_params(self, omega):
-        if np.isscalar(omega):
+    def set_params(self, omega: Union[float, np.array]):
+        if isinstance(omega, float):
             self.slip = omega
-        else:
-            self.slip = omega[0][0]
+            return
+        # check the number of elements inside array is exactly 1
+        assert omega.size == 1
+        omega = omega.flatten()
+        self.slip = omega[0]
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)

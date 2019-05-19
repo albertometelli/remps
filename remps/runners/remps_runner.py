@@ -8,7 +8,7 @@ import tensorflow as tf
 from baselines import logger
 from baselines.common import colorize
 
-from remps.algo.remps import REPMS
+from remps.algo.remps import REMPS
 from remps.envs.confmdp import ConfMDP
 from remps.model_approx.model_approximator import ModelApproximator
 from remps.policy.policy import Policy
@@ -89,7 +89,7 @@ def train(
         )
 
     # setup agent
-    agent = REPMS(
+    agent = REMPS(
         policy=policy,
         model=model_approximator,
         env=env,

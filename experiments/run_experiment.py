@@ -3,22 +3,25 @@ import os.path
 from datetime import datetime
 
 import numpy as np
-
 # log
 from baselines import logger
 from baselines.common.misc_util import set_global_seeds
 
-import remps.runners.remps_runner as reps_runner
+import remps.runners.remps_runner as remps_runner
 from remps.envs.cartpole import CartPole
 from remps.envs.chain import NChainEnv
-from remps.model_approx.cartpole_model_action_noise import CartPoleModel as CartPoleActionNoise
+from remps.envs.torcs.torcs import Torcs
+from remps.model_approx.cartpole_model_action_noise import \
+    CartPoleModel as CartPoleActionNoise
 from remps.model_approx.chain_model import ChainModel
 from remps.model_approx.nn_model import NNModel
+from remps.model_approx.torcs_model_simple import TorcsModel
 from remps.policy.discrete import Discrete
+from remps.policy.gaussian import Gaussian
 from remps.policy.one_parameter_policy import OneParameterPolicy
 from remps.utils.utils import boolean_flag
 
-# Simulation parameters
+# Default Arguments
 EVALUATION_STEPS = 10
 HIDDEN_LAYER_SIZE = 3
 EVAL_FREQ = 50
@@ -31,26 +34,20 @@ def runExp(
     checkpoint_file,
     logdir,
     omega,
+    random_init,
     max_steps,
     hidden_layer_size,
     n_trajectories,
     file_suffix,
     restore_variables,
     overwrite_log,
-    n_actions,
     env_id,
-    train_model_policy,
     seed,
     exact,
     **kwargs
 ):
 
     set_global_seeds(seed)
-
-    # TODO:
-    # something like:
-    # if omega is none -> random init, else use omega
-    omega = np.random.rand()
 
     # setup environments and policy
     if env_id == 1:
@@ -62,25 +59,46 @@ def runExp(
         model_approx = CartPoleActionNoise()
         if not exact:
             model_approx = NNModel(env.observation_space_size, 1, name=env_name)
+    elif env_id == 2:
+        env = Torcs(visual=False, port=kwargs["initial_port"])
+        policy = Gaussian(
+            env.observation_space_size,
+            env.action_space_size,
+            hidden_layer_size=hidden_layer_size,
+        )
+        env_name = "TORCS"
+        model_approx = TorcsModel(
+            env.observation_space_size,
+            env.action_space_size,
+            name=env_name + "2_actions",
+        )
+
     elif env_id == 3:
         env = NChainEnv(max_steps=max_steps)
         env_name = "chain"
-        policy = OneParameterPolicy()
+
+        # initialize policy parameter
+        if not random_init:
+            init_theta = 0.2
+        else:
+            init_theta = np.random.rand()
+        policy = OneParameterPolicy(init_theta=init_theta)
+
         model_approx = ChainModel()
     else:
-        raise ValueError
+        raise ValueError("Wrong environment index")
 
-    # initialize environment params
+    # initialize environment parameters
+    if random_init:
+        omega_bounds = env.get_params_bounds()
+        omega = np.random.uniform(low=omega_bounds[:, 0], high=omega_bounds[:,1])
     env.set_params(omega)
 
     algo_name = "REMPS"
-
     experiment_name = (
         algo_name
         + "/"
         + env_name
-        + "-n-actions"
-        + str(n_actions)
         + "-omega"
         + str(omega)
         + "-traj"
@@ -101,12 +119,12 @@ def runExp(
         experiment_name = experiment_name + "-" + file_suffix
 
     if logdir is None:
-            logdir = (
-                "tf_logs/model_policy_logs/"
-                + experiment_name
-                + "eps-"
-                + str(kwargs["epsilon"])
-            )
+        logdir = (
+            "tf_logs/model_policy_logs/"
+            + experiment_name
+            + "eps-"
+            + str(kwargs["epsilon"])
+        )
 
     now = datetime.now()
 
@@ -115,10 +133,9 @@ def runExp(
         logdir = logdir + "-" + now.strftime("%Y%m%d-%H%M%S") + "/"
 
     if checkpoint_file is None:
-        if train_model_policy:
-            experiment_name = (
-                "model-policy/" + experiment_name + "eps-" + str(kwargs["epsilon"])
-            )
+        experiment_name = (
+            "model-policy/" + experiment_name + "eps-" + str(kwargs["epsilon"])
+        )
         checkpoint_file = "tf_checkpoint/" + experiment_name + "/"
 
     if not restore_variables:
@@ -133,7 +150,7 @@ def runExp(
     print("Logs will be saved into: " + logdir)
     print("Checkpoints will be saved into: " + checkpoint_file)
 
-    reps_runner.train(
+    remps_runner.train(
         env=env,
         policy=policy,
         model_approximator=model_approx,
@@ -151,25 +168,8 @@ def parse_args():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    boolean_flag(parser, "render", help="Render evaluation", default=False)
-    boolean_flag(parser, "render-train", help="Render training", default=False)
-    boolean_flag(
-        parser, "test", help="Run testing after training or only test", default=False
-    )
-    boolean_flag(parser, "train", default=False)
-    boolean_flag(parser, "train-model", default=False)
-    boolean_flag(parser, "use-remps", default=False)
-    boolean_flag(parser, "use-premps", default=False)
-    boolean_flag(parser, "use-fta", default=False)
-    boolean_flag(parser, "test-gp", default=False)
-    boolean_flag(parser, "train-model-policy", default=False)
-    boolean_flag(parser, "test-model-policy", default=False)
     boolean_flag(parser, "restore-variables", default=False)
     boolean_flag(parser, "save-variables", default=True)
-    boolean_flag(parser, "make-grid", default=False)
-    boolean_flag(parser, "use-gp-env", default=False)
-    # Use Gaussian Process for model approximation
-    boolean_flag(parser, "use-gp-approx", default=False)
     parser.add_argument("--checkpoint-file", type=str, default=None)
     parser.add_argument("--logdir", type=str, default=None)
     parser.add_argument("--gamma", type=float, default=1.0)
@@ -178,7 +178,7 @@ def parse_args():
     parser.add_argument("--hidden-layer-size", type=int, default=HIDDEN_LAYER_SIZE)
     parser.add_argument(
         "--n-trajectories",
-        help="Number of trajectories needed to estimate the gradient",
+        help="Number of trajectories to collect before performing the training step",
         type=int,
         default=N_TRAJECTORIES,
     )
@@ -195,31 +195,14 @@ def parse_args():
         default=MAX_STEPS,
     )
     parser.add_argument(
-        "--omega", help="Max speed of the car (MDP parameter)", type=float, default=9
+        "--omega", help="Initial configurable parameters", type=float, default=9
     )
-    parser.add_argument(
-        "--noise-std",
-        help="Noise standard deviation of the trasition function",
-        type=float,
-        default=0.0,
-    )
-    parser.add_argument(
-        "--gradient-estimator", help="gpomdp or reinforce", type=str, default="gpomdp"
-    )
-    parser.add_argument(
-        "--model-gradient-estimator",
-        help="gpomdp or reinforce",
-        type=str,
-        default="gpomdp",
-    )
+    boolean_flag(parser, "random-init", help="If true randomly initialize omega", default=False)
     parser.add_argument(
         "--start-from-iteration",
         help="Iteration number from which to start",
         type=int,
         default=0,
-    )
-    parser.add_argument(
-        "--reward-type", help="Type of reward to use", type=int, default=0
     )
     boolean_flag(
         parser,
@@ -234,21 +217,14 @@ def parse_args():
         default=None,
     )
     parser.add_argument(
-        "--n-actions", type=int, help="Number of actions in the environment", default=3
-    )
-    parser.add_argument(
-        "--env-id", type=int, help="0 mountain car, 1 cartpole", default=0
-    )
-    parser.add_argument(
-        "--policy-optimizer",
-        type=str,
-        help="gd (gradient descent), adam, adagrad, adadelta, rmsprop",
-        default="gd",
+        "--env-id", type=int, help="1 cartpole, 2 torcs, 3 chain", default=0
     )
     parser.add_argument("--title", type=str, default="policy")
     parser.add_argument("--seed", type=int, default=1000)
-    boolean_flag(parser, "exact", default=True)
-    # REMPS
+    boolean_flag(parser, "exact", help="whether the environment model is exact or approximated", default=True)
+    # -----------------------------------------------------
+    # --------------- REMPS PARAMETER ---------------------
+    # -----------------------------------------------------
     parser.add_argument(
         "--epsilon", type=float, default=1e-3, help="Constraint on KL divergence"
     )
@@ -266,8 +242,7 @@ def parse_args():
     args = parser.parse_args()
     dict_args = vars(args)
 
-    print("Running experiment with settings: ")
-    print(dict_args)
+    print(f"Running experiment with settings: {dict_args}")
     return dict_args
 
 

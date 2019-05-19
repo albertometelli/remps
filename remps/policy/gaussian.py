@@ -25,10 +25,10 @@ class Gaussian(Policy):
         @param restore: True if need to restore variables
         """
         # net params
+        super().__init__(name)
         self.hidden_layer_size = hidden_layer_size
         self.state_space = state_space
         self.action_space = action_space
-        self.name = name
         self.sess = None
         self.default_dtype = get_default_tf_dtype()
 
@@ -38,7 +38,6 @@ class Gaussian(Policy):
             # Net
             self.eps = tf.constant(1e-24, dtype=self.default_dtype)
             if self.hidden_layer_size > 0:
-                hidden_layer_size = self.hidden_layer_size
                 biases = tf.get_variable(
                     "b",
                     [self.hidden_layer_size],
@@ -60,7 +59,6 @@ class Gaussian(Policy):
                 h = tf.tanh(h + biases)
 
             else:
-                hidden_layer_size = self.state_space
                 h = state
 
             steer = tf.layers.dense(

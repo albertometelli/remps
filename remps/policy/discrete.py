@@ -24,10 +24,10 @@ class Discrete(Policy):
         @param restore: True if need to restore variables
         """
         # net params
+        super().__init__(name)
         self.hidden_layer_size = hidden_layer_size
         self.state_space = state_space
         self.action_space = action_space
-        self.name = name
         self.sess = None
         self.default_dtype = get_default_tf_dtype()
 

@@ -6,6 +6,10 @@ from remps.utils.utils import get_default_tf_dtype
 
 
 class ChainModel(ModelApproximator):
+
+    def set_omega(self):
+        pass
+
     def __init__(self, name="chain"):
         """
         Parameters
@@ -14,7 +18,6 @@ class ChainModel(ModelApproximator):
         self.sess = None
         self.log_prob = None
         self.default_dtype = get_default_tf_dtype()
-        # must be initialized
         self.name = name
         self.omega_value = 0
         self.width = 1
@@ -151,9 +154,6 @@ class ChainModel(ModelApproximator):
 
     def get_variable_summaries(self):
         return [tf.summary.scalar("Omega", tf.norm(self.get_omega()))]
-
-    def set_omega(self, theta):
-        pass
 
     def set_params(self, theta):
         self.theta_value = theta

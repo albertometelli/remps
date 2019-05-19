@@ -14,7 +14,6 @@ from remps.envs.steps import CartPoleStepActionNoise as stepActionNoise
 
 
 class CartPole(ConfMDP):
-
     def get_params_bounds(self) -> np.array:
         pass
 

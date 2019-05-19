@@ -10,19 +10,19 @@ class OneParameterPolicy(Policy):
     Policy defined by one param: theta, prob of action 0
     """
 
-    def __init__(self, name="policy"):
+    def __init__(self, name="policy", init_theta=np.random.rand()):
         """
         Builds a policy network and returns a node for pi and a node for logpi
-        
         """
         # net params
-        self.name = name
+        super(OneParameterPolicy, self).__init__(name)
         self.sess = None
         self.default_dtype = get_default_tf_dtype()
         self.epsilon_small = 1e-20
         self.action_space = 2
+        self.init_theta = init_theta
 
-    def __call__(self, state, init_theta=0.2):
+    def __call__(self, state):
 
         with tf.variable_scope(self.name):
             # Net
@@ -34,7 +34,7 @@ class OneParameterPolicy(Policy):
                 dtype=get_default_tf_dtype(),
                 shape=(1, 1),
                 initializer=tf.initializers.constant(
-                    self.from_sigm_to_theta(init_theta)
+                    self.from_sigm_to_theta(self.init_theta)
                 ),
             )
 

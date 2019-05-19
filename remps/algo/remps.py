@@ -22,7 +22,7 @@ from tensorflow.contrib.opt import ScipyOptimizerInterface
 from remps.utils.utils import get_default_tf_dtype
 
 
-class REPMS:
+class REMPS:
     """
     Relative Entropy Model Policy Search (REMPS)
     """
@@ -55,10 +55,9 @@ class REPMS:
         :param projection_type: type of projection
         :param use_features: whether to use features or not
         :param training_set_size: number of samples in the training set
-        :param exac
+        :param exact:
         :return:
         """
-        super(REPMS, self).__init__(**kwargs)
         self.epsilon = epsilon
         self.L2_reg_dual = L2_reg_dual
         self.L2_reg_loss = L2_reg_loss
@@ -71,8 +70,6 @@ class REPMS:
         self.dtype = get_default_tf_dtype()
         self.epsilon_small = 1e-24
         self.min_eta_inv = 1e-12
-        self.min_omega = 0.1
-        self.max_omega = 30
         self.projection_type = projection_type
         self.model_L2_reg_loss = 0
         self.policy_L2_reg_loss = L2_reg_loss
@@ -139,9 +136,8 @@ class REPMS:
             shape=(None, self.env.observation_space_size * 2),
         )
 
-        # initialize theta randomly
-        theta = np.random.rand()
-        policy_tf, _ = self.policy(self.observations_ph, theta)
+        # Get Policy
+        policy_tf, _ = self.policy(self.observations_ph)
         model_log_prob_tf, model_prob_tf = self.model(
             self.observations_ph,
             self.actions_ph,

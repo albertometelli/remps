@@ -20,7 +20,7 @@ from tensorflow.python import debug as tf_debug
 
 from remps.algo.gpomdp import GPOMDP
 from remps.algo.gradient_descent import Adam
-from remps.algo.remps import REPMS
+from remps.algo.remps import REMPS
 from remps.envs.torcs.torcs import Torcs
 from remps.policy.discrete import Discrete
 from remps.runners.envRunner import runEnv

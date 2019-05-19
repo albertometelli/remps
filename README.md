@@ -1,9 +1,9 @@
-# CMDP
+# REMPS
 Repository for the paper "Reinforcement Learning in Configurable Continuous Environments". Accepted at ICML 2019.
 
 # Introduction
-A CMDP is a MDP in which the transition function is affected by some configurable parameters.
-The effect of the parameter on the transition function is unknown.
+A Conf-MDP is a MDP in which the transition function p: (s,a) -> s' is affected by some configurable parameters \omega.
+The effect of the parameter on the transition function can be known (exact case) or unknown (approximated case).
 
 # Documentation
 The class cmdp is the abstract class of the environment providing the method setParams for the setting of the parameters.

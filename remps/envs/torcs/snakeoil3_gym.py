@@ -54,15 +54,13 @@
 
 import getopt
 import os
-
 # for Python3-based torcs python robot client
 import socket
 import sys
 import time
-from typing import Union, List
+from typing import List, Union
 
 import numpy as np
-
 
 data_size = 2 ** 17
 
@@ -144,7 +142,7 @@ class Client:
         d=None,
         vision=False,
         visual=False,
-        n_configurable_parameters=2
+        n_configurable_parameters=2,
     ):
         # If you don't like the option defaults,  change them here.
         self.vision = vision

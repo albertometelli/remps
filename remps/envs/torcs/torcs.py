@@ -63,7 +63,10 @@ class Torcs(ConfMDP):
         self.tree = ET.parse(self.conf_file)
         self.root = self.tree.getroot()
         self.client = snakeoil3.Client(
-            p=self.port, vision=self.vision, visual=visual, n_configurable_parameters=self.n_configurable_parameters
+            p=self.port,
+            vision=self.vision,
+            visual=visual,
+            n_configurable_parameters=self.n_configurable_parameters,
         )  # Open new UDP in vtorcs
         self.client.MAX_STEPS = max_steps
 
@@ -148,9 +151,7 @@ class Torcs(ConfMDP):
             if np.isnan(sp):
                 info["reset"] = True
             progress = sp * np.cos(obs["angle"])
-            reward += (
-                progress
-            )
+            reward += progress
 
             if track.min() < 0:  # Episode is terminated if the car is out of track
                 reward += -1000
@@ -281,7 +282,6 @@ class Torcs(ConfMDP):
             temp = []
         return np.array(rgb, dtype=np.uint8)
 
-
     def get_params_bounds(self) -> np.array:
         min_params = np.zeros((self.n_configurable_parameters, 1))
         max_params = np.ones((self.n_configurable_parameters, 1))
@@ -298,7 +298,9 @@ class Torcs(ConfMDP):
         self.configurable_parameters = arg[0]
         self.client.setParams(*arg)
 
-        for p, p_name, p_attr in zip(self.configurable_parameters, self.params_name, self.params_attr):
+        for p, p_name, p_attr in zip(
+            self.configurable_parameters, self.params_name, self.params_attr
+        ):
             for elem in self.root:
                 # print(elem.attrib)
                 if p_name in elem.attrib["name"]:

@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
+
 import numpy as np
 
 
 class ModelApproximator(ABC):
-
     @property
     def trainable_vars(self):
         pass

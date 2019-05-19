@@ -1,11 +1,10 @@
 from abc import abstractmethod
 
-import numpy as np
 import gym
+import numpy as np
 
 
 class ConfMDP(gym.Env):
-
     @abstractmethod
     def set_params(self, *arg):
         """
@@ -25,8 +24,8 @@ class ConfMDP(gym.Env):
         """
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def observation_space_size(self) -> int:
         """
         Returns the size of the observation space
