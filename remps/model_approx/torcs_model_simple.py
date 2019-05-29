@@ -2,6 +2,7 @@ import os.path
 
 import baselines.common.tf_util as U
 import matplotlib as mpl
+
 mpl.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np

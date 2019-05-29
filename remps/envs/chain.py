@@ -23,7 +23,7 @@ class NChainEnv(ConfMDP):
     http://ceit.aut.ac.ir/~shiry/lecture/machine-learning/papers/BRL-2000.pdf
     """
 
-    def render(self, mode='human'):
+    def render(self, mode="human"):
         pass
 
     def get_params_bounds(self) -> np.array:
@@ -48,7 +48,6 @@ class NChainEnv(ConfMDP):
         self.action_space = spaces.Discrete(2)
         self.observation_space = spaces.Discrete(self.n)
         self.observation_space_dim = 2
-        self.action_space_size = 2
         self.n_actions = 2
         self.seed()
         self.max_steps = max_steps

@@ -20,7 +20,7 @@ for s in 10 1 1000 57 2 3 4876 907655 90 46; do
                                      --eval-freq 2 \
                                      --eval-steps 2 \
                                      --noise-std 1e-5 \
-                                     --epsilon 0.0001 \
+                                     --kappa 0.0001 \
                                      --use-remps \
                                      --file-suffix 'NN' \
                                      --normalize-data \
@@ -48,7 +48,7 @@ for s in 10 1 1000 57 2 3 4876 907655 90 46; do
                                      --eval-freq 2 \
                                      --eval-steps 2 \
                                      --noise-std 1e-5 \
-                                     --epsilon 0.0001 \
+                                     --kappa 0.0001 \
                                      --use-remps \
                                      --normalize-data \
 				     --file-suffix 'random-init' \

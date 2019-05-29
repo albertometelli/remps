@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
+
 # log
 from baselines import logger
 from baselines.common.misc_util import set_global_seeds
@@ -19,11 +20,11 @@ import remps.runners.modelPolicyRunner as modelPolicyRunner
 import remps.runners.p_remps_runner as premps_runner
 import remps.runners.remps_runner as reps_runner
 import remps.test.makePerformanceGrid as gridRunner
+
 # model optimizers
 from remps.algo.modelGPOMDP import GPOMDPmodelOptimizer
 from remps.algo.modelReinforce import ReinforceOptimizer
-from remps.algo.offPGPOMDP import \
-    offPGPOMDPOptimizer as offPolicyGPOMDPOptimizer
+from remps.algo.offPGPOMDP import offPGPOMDPOptimizer as offPolicyGPOMDPOptimizer
 from remps.algo.offPoffMModelGPOMDP import offPoffMGPOMDPmodelOptimizer
 from remps.algo.pgReinforce import ReinforceOptimizer as reinforce
 from remps.algo.policyGradientGPOMDP import GPOMDPOptimizer as gpomdp
@@ -34,11 +35,13 @@ from remps.envs.MountainCarEnvV2 import MountainCarEnv as mountainCarv2
 from remps.envs.MountainCarGp import MountainCarEnv as MountainCarEnvGp
 from remps.envs.puddleworld_conf_env import PuddleWorld
 from remps.envs.torcs.torcs import Torcs
+
 # Model approximators
 from remps.gp.gpManager import GpManager
 from remps.model_approx.cartpole_model import CartPoleModel
-from remps.model_approx.cartpole_model_action_noise import \
-    CartPoleModel as CartPoleActionNoise
+from remps.model_approx.cartpole_model_action_noise import (
+    CartPoleModel as CartPoleActionNoise,
+)
 from remps.model_approx.chain_model import ChainModel
 from remps.model_approx.MountainCarActionNoise import MountainCarDummyApprox
 from remps.model_approx.nn_model import NNModel

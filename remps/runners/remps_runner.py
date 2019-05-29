@@ -8,12 +8,13 @@ import tensorflow as tf
 from baselines import logger
 from baselines.common import colorize
 
-from remps.algo.remps import REMPS
+from remps.algo.remps import REMPS, Projection
 from remps.envs.confmdp import ConfMDP
 from remps.model_approx.model_approximator import ModelApproximator
 from remps.policy.policy import Policy
 from remps.runners.envRunner import runEnv
 from remps.sampler.parallel_sampler import SamplingWorker
+from remps.utils.logging import timed
 
 
 def train(
@@ -32,7 +33,7 @@ def train(
     logdir=None,
     log=False,
     omega=5,
-    epsilon=1e-5,
+    kappa=1e-5,
     training_set_size=500,
     normalize_data=False,
     dual_reg=0.0,
@@ -61,7 +62,7 @@ def train(
     :param logdir: directory containing logs
     :param log: if true the agents logs the actions probability
     :param omega: initial environment parameters
-    :param epsilon: parameter of remps environment
+    :param kappa: parameter of remps environment
     :param training_set_size:
     :param normalize_data:
     :param dual_reg:
@@ -77,24 +78,13 @@ def train(
     writer = tf.summary.FileWriter(logdir)
     logger.configure(dir=logdir, format_strs=["stdout", "csv"])
 
-    @contextmanager
-    def timed(msg):
-        print(colorize(msg, color="red"))
-        tstart = time.time()
-        yield
-        print(
-            colorize(
-                msg + " done in %.3f seconds" % (time.time() - tstart), color="red"
-            )
-        )
-
     # setup agent
     agent = REMPS(
         policy=policy,
         model=model_approximator,
         env=env,
-        epsilon=epsilon,
-        projection_type="joint",
+        kappa=kappa,
+        projection_type=Projection.STATE_KERNEL,
         use_features=False,
         training_set_size=training_set_size,
         L2_reg_dual=dual_reg,
@@ -162,7 +152,7 @@ def train(
             )
 
             # store data in the agent
-            agent.storeData(x, y, normalize_data)
+            agent.store_data(x, y, normalize_data)
 
             print("Data collected")
 

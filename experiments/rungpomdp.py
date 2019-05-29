@@ -3,6 +3,7 @@ import os.path
 from datetime import datetime
 
 import numpy as np
+
 # log
 from baselines import logger
 from baselines.common.misc_util import set_global_seeds
@@ -10,10 +11,12 @@ from baselines.common.misc_util import set_global_seeds
 import remps.runners.gpomdp_runner as gpomdp_runner
 from remps.envs.cartpole import CartPole
 from remps.envs.chain import NChainEnv
-from remps.model_approx.cartpole_model_action_noise import \
-    CartPoleModel as CartPoleActionNoise
+from remps.model_approx.cartpole_model_action_noise import (
+    CartPoleModel as CartPoleActionNoise,
+)
 from remps.model_approx.chain_model import ChainModel
 from remps.model_approx.nn_model import NNModel
+
 # policy
 from remps.policy.discrete import Discrete
 from remps.policy.one_parameter_policy import OneParameterPolicy

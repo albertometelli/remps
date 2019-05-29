@@ -4,8 +4,7 @@ import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from baselines import logger
 
-from remps.utils.utils import (flat_and_pad, get_default_tf_dtype,
-                               get_tf_optimizer)
+from remps.utils.utils import flat_and_pad, get_default_tf_dtype, get_tf_optimizer
 
 
 class GPOMDP:
@@ -229,7 +228,7 @@ class GPOMDP:
         norm_delta_var = np.linalg.norm(delta_variables)
         delta_omega = omega - omega_before
         norm_delta_omega = np.linalg.norm(delta_omega)
-        theta = self.sess.run(self.policy.getTheta())
+        theta = self.sess.run(self.policy.get_theta())
         # record all
         logger.record_tabular("ITERATIONS", self.iteration)
         logger.record_tabular("Theta", theta[0, 0])

@@ -17,7 +17,7 @@ for s in 10 1 1000 57 2 3 4876 907655 90 46; do
                                                 --eval-freq 2 \
                                                 --eval-steps 2 \
                                                 --noise-std 1e-5  \
-                                                --epsilon 0.01 \
+                                                --kappa 0.01 \
 						                        --file-suffix "random-init" \
                                                 --no-normalize-data \
                                                 --training-set-size 500 \

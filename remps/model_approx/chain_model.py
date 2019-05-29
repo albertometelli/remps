@@ -6,7 +6,6 @@ from remps.utils.utils import get_default_tf_dtype
 
 
 class ChainModel(ModelApproximator):
-
     def set_omega(self):
         pass
 

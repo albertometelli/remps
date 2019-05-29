@@ -31,6 +31,9 @@ class Discrete(Policy):
         self.sess = None
         self.default_dtype = get_default_tf_dtype()
 
+    def get_theta(self):
+        return self.trainable_vars
+
     def __call__(self, state):
 
         with tf.variable_scope(self.name):

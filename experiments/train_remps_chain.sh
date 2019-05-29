@@ -12,7 +12,7 @@ python ./experiments/run_experiment.py  --no-restore-variables \
                                             --max-steps 500 \
                                             --eval-freq 2 \
                                             --eval-steps 2 \
-                                            --epsilon 1e-3 \
+                                            --kappa 1e-3 \
                                             --file-suffix "exact-fixed-init" \
                                             --no-normalize-data \
                                             --training-set-size 500 \

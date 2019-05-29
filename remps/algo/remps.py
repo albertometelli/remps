@@ -5,21 +5,32 @@ Then matches the distributions minimizing the KL between the p and the induced d
 \pi and \p_\omega
 Follows the rllab implementation
 """
-
-import time
-from contextlib import contextmanager
-from copy import copy
+from enum import Enum
+from typing import Dict
 
 import baselines.common.tf_util as U
-import matplotlib.pyplot as plt
 import numpy as np
-import scipy.optimize
 import tensorflow as tf
 from baselines import logger
-from baselines.common import colorize
 from tensorflow.contrib.opt import ScipyOptimizerInterface
 
+from remps.envs.confmdp import ConfMDP
+from remps.model_approx.model_approximator import ModelApproximator
+from remps.policy.policy import Policy
+from remps.utils.logging import timed
 from remps.utils.utils import get_default_tf_dtype
+
+
+class Projection(Enum):
+    """
+    Projection types.
+    State kernel: joint projection
+    DISJOINT: Project independently policy and model
+    D_PROJECTION: Idea projection of the stationary distribution
+    """
+    STATE_KERNEL = 0
+    DISJOINT = 1
+    D_PROJECTION = 2
 
 
 class REMPS:
@@ -29,22 +40,26 @@ class REMPS:
 
     def __init__(
         self,
-        epsilon=1e-3,  # 0.001,
-        L2_reg_dual=0.0,  # 1e-7,# 1e-5,
-        L2_reg_loss=0.0,
-        max_opt_itr=1000,
+        kappa: float =1e-3,  # 0.001,
+        L2_reg_dual: float=0.0,  # 1e-7,# 1e-5,
+        L2_reg_loss: float=0.0,
+        max_opt_itr: int=1000,
         tf_optimizer=ScipyOptimizerInterface,
-        model=None,
-        policy=None,
-        env=None,
-        projection_type="joint",  # joint or disjoint, joint: state kernel projection
-        use_features=True,
-        training_set_size=5000,
-        exact=False,
-        **kwargs
+        model: ModelApproximator=None,
+        policy: Policy=None,
+        env: ConfMDP =None,
+        projection_type: Projection =Projection.STATE_KERNEL,  # State kernel or disjoint
+        training_set_size: int=5000,
+        exact: bool=False,
+        restart_fitting: bool=False,
+        fit_iterations: int=40000,
+        refit_iterations: int=1000,
+        refit: int=False,
+        refit_every_iterations: int=100,
+        **kwargs,
     ):
         """
-        :param epsilon: Max KL divergence between new policy and old policy.
+        :param kappa: Max KL divergence between new policy and old policy.
         :param L2_reg_dual: Dual regularization
         :param L2_reg_loss: Loss regularization
         :param max_opt_itr: Maximum number of batch optimization iterations.
@@ -55,15 +70,14 @@ class REMPS:
         :param projection_type: type of projection
         :param use_features: whether to use features or not
         :param training_set_size: number of samples in the training set
-        :param exact:
+        :param exact: whether the model approximation is exact or not
         :return:
         """
-        self.epsilon = epsilon
+        self.kappa = kappa
         self.L2_reg_dual = L2_reg_dual
         self.L2_reg_loss = L2_reg_loss
         self.max_opt_itr = max_opt_itr
         self.tf_optimizer = tf_optimizer
-        self.opt_info = None
         self.model = model
         self.policy = policy
         self.env = env
@@ -73,10 +87,62 @@ class REMPS:
         self.projection_type = projection_type
         self.model_L2_reg_loss = 0
         self.policy_L2_reg_loss = L2_reg_loss
-        self.use_features = use_features
         self.write_every = 1
         self.training_set_size = training_set_size
         self.exact = exact
+        self.fit_iterations = fit_iterations
+        self.refit_iterations = (
+            refit_iterations if not restart_fitting else fit_iterations
+        )
+        self.restart_fitting = restart_fitting
+        self.refit = refit
+        self.refit_every_iterations = refit_every_iterations
+        self.sess = None
+        self.summary_writer = None
+        self.global_step = 0
+        self.iteration = 0
+
+        # ----------------------------------------
+        # placeholders
+        # ----------------------------------------
+        self.observations_ph = None
+        self.actions_one_hot_ph = None
+        self.kappa_ph = None  # Constraint on the KL divergence: \kappa
+        self.actions_ph = None
+        self.rewards_ph = None
+        self.returns_ph = None
+        self.timesteps_ph = None
+        self.next_states_ph = None
+        self.feat_diff_ph = None
+        self.param_eta = None  # Value of \eta
+        self.param_eta_inv_ph = None  # inverse of eta_ 1/\eta
+        self.policy_tf = None  # \pi(a | s)
+        self.model_tf = None  # p_\omega(s'|s,a)
+        self.model_logli = None  # log(p_\omega(s' | s,a))
+        self.model_policy_loss = None  #
+        self.dual = None  # \min_{\eta\in[0, +\infty)} g(\eta) =
+        # \eta \log \ev_{S,A,S' \sim d} \left[ \exp\left(\frac{1}{\eta} r(S,A,S') + \kappa \right) \right]
+        self.dual_grad = None  # Gradient of the dual
+        self.primal = None  # \exp\left(\frac{1}{\eta} r(s,a,s')\right)
+        self.model_grad_loss = None  # Gradient of the loss of the model
+        self.policy_grad_loss = None  # Gradient of the loss of the poliicy
+        self.model_policy_grad_loss = None  # Gradient of the loss of the model policy
+        self.model_loss = None  # Loss of the model
+        self.policy_loss = None  # Policy loss
+        self.eta = None  # Dual parameter
+        self.state_kernel = (
+            None
+        )  # p\{\theta, \omega} (s' | s) = p_\omega (s'|s,a) \pi_\theta (a | s)
+
+        # ----------------------------------------
+        # Optimizers
+        # ----------------------------------------
+        self.model_policy_tf_optimizer = None
+        self.model_tf_optimizer = None
+        self.dual_optimizer = None
+
+        # Summary
+        self.summarize = None
 
     def initialize(self, session, summary_writer, omega=5):
 
@@ -92,12 +158,10 @@ class REMPS:
 
         # one hot tensor
         self.actions_one_hot_ph = tf.placeholder(
-            dtype=self.dtype,
-            name="action_one_hot",
-            shape=(None, self.env.action_space_size),
+            dtype=self.dtype, name="action_one_hot", shape=(None, self.env.n_actions)
         )
 
-        self.epsilon_ph = tf.placeholder(dtype=self.dtype, name="epsilon", shape=())
+        self.kappa_ph = tf.placeholder(dtype=self.dtype, name="kappa", shape=())
 
         # -1, 0, +1 tensor
         # or -1 +1 tensor
@@ -149,20 +213,10 @@ class REMPS:
             summary_writer=summary_writer,
         )
         self.policy_tf = policy_tf
-        self.param_v_ph = tf.get_variable(
-            name="param_v",
-            shape=(self.env.observation_space_size * 2, 1),
-            dtype=self.dtype,
-        )
         self.param_eta_inv_ph = tf.get_variable(name="eta", shape=(), dtype=self.dtype)
         eta = 1 / self.param_eta_inv_ph
-        # Symbolic sample Bellman error
-        if self.use_features:
-            delta_v = self.rewards_ph + tf.matmul(self.feat_diff_ph, self.param_v_ph)
-        else:
-            delta_v = self.rewards_ph
 
-        # Model logli
+        # Model loglikelihood
         model_logli = model_log_prob_tf
 
         # Policy and model loss loss (KL divergence, to be minimized)
@@ -170,13 +224,11 @@ class REMPS:
         state_kernel = tf.reduce_sum(state_kernel_before_sum, axis=1, keepdims=True)
 
         # algorithm information
-        weights = tf.exp(delta_v / eta - tf.reduce_max(delta_v / eta))
-        weights_exponent = delta_v / eta - tf.reduce_max(delta_v / eta)
+        weights = tf.exp(self.rewards_ph / eta - tf.reduce_max(self.rewards_ph / eta))
         weights_norm = weights / tf.reduce_mean(weights)
         max_weights = tf.reduce_max(weights)
         min_weights = tf.reduce_min(weights)
         mean_weights = tf.reduce_mean(weights)
-        median_weights = tf.contrib.distributions.percentile(weights, 50.0)
 
         # For regularization add L2 reg term
         model_policy_loss = -tf.reduce_sum(
@@ -187,7 +239,7 @@ class REMPS:
         # Loss function using L2 Regularization
         regularizers = [tf.reduce_sum(tf.square(x)) for x in self.policy.trainable_vars]
         total_loss = tf.add_n(regularizers)
-        model_policy_loss += self.L2_reg_loss * (total_loss)
+        model_policy_loss += self.L2_reg_loss * total_loss
 
         model_policy_grad_loss = tf.gradients(
             model_policy_loss, self.policy.trainable_vars + self.model.trainable_vars
@@ -210,7 +262,7 @@ class REMPS:
             tf.reduce_sum(tf.square(x)) for x in self.model.trainable_vars
         ]
         model_reg_loss = tf.add_n(model_regularizers)
-        model_loss += self.model_L2_reg_loss * (model_reg_loss)
+        model_loss += self.model_L2_reg_loss * model_reg_loss
 
         model_grad_loss = tf.gradients(model_loss, self.model.trainable_vars)
 
@@ -231,7 +283,7 @@ class REMPS:
             tf.reduce_sum(tf.square(x)) for x in self.policy.trainable_vars
         ]
         policy_reg_loss = tf.add_n(policy_regularizers)
-        policy_loss += self.policy_L2_reg_loss * (policy_reg_loss)
+        policy_loss += self.policy_L2_reg_loss * policy_reg_loss
 
         policy_grad_loss = tf.gradients(policy_loss, self.policy.trainable_vars)
         self.policy_tf_optimizer = self.tf_optimizer(
@@ -241,25 +293,20 @@ class REMPS:
         # Dual-related symbolics
         # Symbolic dual
         dual = (
-            eta * self.epsilon_ph
+            eta * self.kappa_ph
             + eta * tf.log(tf.reduce_mean(weights))
-            + eta * tf.reduce_max(delta_v / eta)
+            + eta * tf.reduce_max(self.rewards_ph / eta)
         )
         # Add L2 regularization.
         dual += self.L2_reg_dual * (
             tf.square(self.param_eta_inv_ph) + tf.square(1 / self.param_eta_inv_ph)
         )
 
-        if self.use_features:
-            dual_grad = tf.gradients(dual, [self.param_eta_inv_ph, self.param_v_ph])
-        else:
-            dual_grad = tf.gradients(dual, [self.param_eta_inv_ph])
+        dual_grad = tf.gradients(dual, [self.param_eta_inv_ph])
         # Set parameter boundaries: \eta>0, v unrestricted.
         dual_bound = {self.param_eta_inv_ph: (self.min_eta_inv, np.infty)}
-        if self.use_features:
-            var_list = [self.param_eta_inv_ph, self.param_v_ph]
-        else:
-            var_list = [self.param_eta_inv_ph]
+
+        var_list = [self.param_eta_inv_ph]
         self.dual_optimizer = self.tf_optimizer(
             dual, var_list=var_list, var_to_bounds=dual_bound, options={"maxiter": 100}
         )
@@ -269,12 +316,6 @@ class REMPS:
         self.policy_tf = policy_tf
         self.model_logli = model_logli
         self.model_policy_loss = model_policy_loss
-        self.weights = weights
-        self.weights_exponent = weights_exponent
-        self.min_weights = min_weights
-        self.max_weights = max_weights
-        self.mean_weights = mean_weights
-        self.median_weights = median_weights
         self.dual = dual
         self.dual_grad = dual_grad
         self.primal = primal
@@ -285,7 +326,6 @@ class REMPS:
         self.policy_loss = policy_loss
         self.eta = eta
         self.state_kernel = state_kernel
-        self.delta_v = delta_v
 
         # plot purpose
         mean_ret = tf.reduce_mean(self.returns_ph)
@@ -314,38 +354,31 @@ class REMPS:
             + model_vars_sum
         )
         self.setParamEtaInv = U.SetFromFlat([self.param_eta_inv_ph], dtype=self.dtype)
-        self.setParamV = U.SetFromFlat([self.param_v_ph], dtype=self.dtype)
         self.model_tf = model_prob_tf
-        self.model_log_prob = model_log_prob_tf
         self.iteration = 0
 
     def _features(self, path):
         o = np.array(path)
-        pos = np.expand_dims(o[:, 0], 1)
-        vel = np.expand_dims(o[:, 1], 1)
-        l = np.shape(path)[0]
-        al = np.arange(l).reshape(-1, 1) / 100000.0
         return np.hstack((o, o ** 2))  # , pos*vel, al, al**2, al**3, np.ones((l, 1))))
 
-    # convert to the usage of my framework
-    # samples data contains:
-    # - rewards
-    # - observations : visited states
-    # - paths : list of observations, used to build next states and states
-    #           (add to observation all but the last states)
-    # - actions: taken actions
-    # - actions_one_hot: one hot vector of taken actions
-    def train(self, samples_data, normalize_rewards=False):
-        debug = False
-        refit_every = 10
+    def train(self, samples_data: Dict, normalize_rewards: bool = False):
+        """
+
+        :param samples_data: contains: rewards
+                                       reward_list
+                                       actions
+                                       timesteps
+                                       actions_one_hot
+                                       wins
+                                       paths
+        :param normalize_rewards: boolean, whether to normalize rewards
+        :return: The new value of omega
+        """
         # Init vars
         rewards = samples_data["rewards"]
         reward_list = samples_data["reward_list"]
-        actions = samples_data["actions"]
         timesteps = samples_data["timesteps"]
         actions_one_hot = samples_data["actions_one_hot"]
-        wins = samples_data.get("wins", 0)
-        # Compute sample Bellman error.
         feat_diff = []
         next_states = []
         states = []
@@ -373,6 +406,8 @@ class REMPS:
                 actions = np.hstack(
                     (actions + 1, actions + 1, actions + 1, actions + 1)
                 )
+        else:
+            actions = actions_one_hot * [-1, 1]
 
         if normalize_rewards:
             rewards = (rewards - np.mean(rewards)) / (np.maximum(np.std(rewards), 1e-5))
@@ -387,172 +422,43 @@ class REMPS:
             self.actions_ph: actions,
             self.returns_ph: reward_list,
             self.timesteps_ph: timesteps,
-            self.epsilon_ph: self.epsilon,
+            self.kappa_ph: self.kappa,
         }
 
         inputs_dict.update(self.model.get_feed_dict())
 
-        @contextmanager
-        def timed(msg):
-            print(colorize(msg, color="magenta"))
-            tstart = time.time()
-            yield
-            print(
-                colorize(
-                    msg + "done in %.3f seconds" % (time.time() - tstart),
-                    color="magenta",
-                )
-            )
-
         #################
         # Optimize dual #
         #################
+        self.optimize_dual(inputs_dict)
 
-        # Here we need to optimize dual through BFGS in order to obtain \eta
-        # value. Initialize dual function g(\theta, v). \eta > 0
-        # Init dual param values
-        self.param_eta_inv = 1.0
-        # Adjust for linear feature vector.
-        self.param_v = np.random.rand(self.env.observation_space_size * 2)
+        print(f"Parameters found: {self.param_eta}")
 
-        # Initial BFGS parameter values.
-        self.setParamV(self.param_v)
-        self.setParamEtaInv([self.param_eta_inv])
-
-        # Optimize through BFGS
-        with timed("optimizing dual"):
-            eta_before = 1 / self.param_eta_inv
-            v_before = self.param_v
-
-            dual_before, dual_grad_before = self.sess.run(
-                [self.dual, self.dual_grad], feed_dict=inputs_dict
-            )
-
-            self.dual_optimizer.minimize(session=self.sess, feed_dict=inputs_dict)
-
-            dual_after, grad_after = self.sess.run(
-                [self.dual, self.dual_grad], feed_dict=inputs_dict
-            )
-
-        # Optimal values have been obtained
-        param_eta = self.sess.run(self.eta)
-        param_v = self.sess.run(self.param_v_ph)
-
-        print("Parameters found: {}, {}".format(param_eta, param_v))
+        # save variables before projection
+        omega_before = np.array(self.sess.run(self.model.get_omega()))
+        th_before = np.array(self.sess.run(self.policy.get_theta()))
 
         ###################
         # Optimize policy and model #
         ###################
-        omega_before = self.sess.run(self.model.get_omega())  # [0,0]
-        th_before = self.sess.run(self.policy.getTheta())
+        self.project(inputs_dict)
 
-        # save old variables before variable optimization
-        variables_before = U.GetFlat(self.policy.trainable_vars)()
+        # save variable after projection
+        omega_after = np.array(
+            self.sess.run(self.model.get_omega(), feed_dict=inputs_dict)
+        )
+        th_after = np.array(self.sess.run(self.policy.get_theta()))
 
-        if debug:
-            tensor_to_eval = [
-                self.model_policy_grad_loss,
-                self.model_policy_loss,
-                self.policy_grad_loss,
-                self.policy_loss,
-                self.model_grad_loss,
-                self.model_loss,
-                self.state_kernel,
-                self.delta_v,
-                self.weights,
-                self.min_weights,
-                self.max_weights,
-                self.mean_weights,
-                self.median_weights,
-                self.weights_exponent,
-                self.model_tf,
-                self.policy_tf,
-                self.model_log_prob,
-            ]
-
-            model_policy_grad_loss_, model_policy_loss_, policy_grad_loss_, policy_loss_, model_grad_loss_, model_loss_, state_kernel_val, delta_v_val, weights, min_weights, max_weights, mean_weights, median_weights, weights_exp, model_vals, policy_vars, model_log_prob = self.sess.run(
-                tensor_to_eval, feed_dict=inputs_dict
-            )
-
-        else:
-            tensor_to_eval = [
-                self.weights,
-                self.min_weights,
-                self.max_weights,
-                self.mean_weights,
-                self.median_weights,
-            ]
-            weights, min_weights, max_weights, mean_weights, median_weights = self.sess.run(
-                tensor_to_eval, feed_dict=inputs_dict
-            )
-
-        # joint or disjoint projection
-        if self.projection_type == "joint":
-
-            # reassign the correct omega
-            with timed("projection"):
-                self.model_policy_tf_optimizer.minimize(
-                    session=self.sess, feed_dict=inputs_dict
-                )
-            model_policy_loss_grad, model_policy_loss_value, state_kernel_val, variables, delta_v_val = self.sess.run(
-                [
-                    self.model_policy_grad_loss,
-                    self.model_policy_loss,
-                    self.state_kernel,
-                    self.policy.trainable_vars + self.model.trainable_vars,
-                    self.delta_v,
-                ],
-                feed_dict=inputs_dict,
-            )
-        else:
-            # Disjoint Projection
-            self.model_tf_optimizer.minimize(session=self.sess, feed_dict=inputs_dict)
-            self.policy_tf_optimizer.minimize(session=self.sess, feed_dict=inputs_dict)
-
-        variables_after = U.GetFlat(self.policy.trainable_vars)()
-        omega_after = self.sess.run(
-            self.model.get_omega(), feed_dict=inputs_dict
-        )  # [0,0]
-        th = self.sess.run(self.policy.getTheta())
+        # log variable
         if self.iteration % self.write_every == 0:
-            primal, summary_str = self.sess.run(
-                [self.primal, self.summarize], feed_dict=inputs_dict
+            self.log(
+                inputs_dict,
+                omega_before,
+                th_before,
+                omega_after,
+                th_after,
+                samples_data,
             )
-            delta_variables = variables_after - variables_before
-            norm_delta_var = np.linalg.norm(delta_variables)
-            delta_omega = omega_after - omega_before
-            norm_delta_omega = np.linalg.norm(delta_omega)
-            self.summary_writer.add_summary(summary_str, self.global_step)
-            # record all
-            logger.record_tabular("ITERATIONS", self.iteration)
-            logger.record_tabular("Theta", th[0, 0])
-            logger.record_tabular("ThetaBefore", th_before[0, 0])
-            logger.record_tabular("DualBefore", dual_before)
-            logger.record_tabular("DualAfter", dual_after)
-            logger.record_tabular("Primal", primal)
-            logger.record_tabular("OmegaBefore", omega_before[0, 0])
-            logger.record_tabular("Omega", omega_after[0, 0])
-            logger.record_tabular("NormDeltaOmega", norm_delta_omega)
-            logger.record_tabular("Eta", param_eta)
-            logger.record_tabular("NormDeltaVar", norm_delta_var)
-            logger.record_tabular("DeltaOmega", delta_omega)
-            logger.record_tabular("Epsilon", self.epsilon)
-            logger.record_tabular("ReturnsMean", np.mean(reward_list))
-            logger.record_tabular("ReturnsStd", np.std(reward_list))
-            logger.record_tabular("RewardMean", np.mean(rewards))
-            logger.record_tabular("RewardStd", np.std(rewards))
-            logger.record_tabular("TimestepsMean", np.mean(timesteps))
-            logger.record_tabular("TimestepsStd", np.std(timesteps))
-            logger.record_tabular("DualReg", self.L2_reg_dual)
-            logger.record_tabular("LossReg", self.L2_reg_loss)
-            logger.record_tabular("WeightMin", min_weights)
-            logger.record_tabular("WeightMax", max_weights)
-            logger.record_tabular("WeightMean", min_weights)
-            logger.record_tabular("WeightMedian", median_weights)
-            logger.record_tabular("Wins", wins)
-            logger.record_tabular("Traj", samples_data["traj"])
-            logger.record_tabular("ConfortViolation", samples_data["confort_violation"])
-            logger.dump_tabular()
 
         self.iteration += 1
         self.global_step += 1
@@ -574,10 +480,15 @@ class REMPS:
         # np.save(self.model.folder + "on_policyX.npy", X)
         # np.save(self.model.folder+"on_policyY.npy", targets)
 
-        # if self.iteration % refit_every == 0:
-        # self.model.fit(action_ph=self.actions_ph, states_ph=self.observations_ph,
-        #               next_states_ph=self.next_states_ph, load_weights=False,
-        #               add_onpolicy=True, training_step=1000)
+        if self.iteration % self.refit_every_iterations == 0 and self.refit:
+            self.model.fit(
+                action_ph=self.actions_ph,
+                states_ph=self.observations_ph,
+                next_states_ph=self.next_states_ph,
+                load_weights=False,
+                add_onpolicy=True,
+                training_step=1000,
+            )
 
         return omega_after
 
@@ -588,7 +499,7 @@ class REMPS:
         a = np.random.choice(int(self.env.action_space_size), p=probs)
         return a
 
-    def storeData(self, X, Y, normalize_data=False):
+    def store_data(self, X, Y, normalize_data=False):
         self.model.store_data(X, Y, normalize_data)
         pass
 
@@ -597,7 +508,95 @@ class REMPS:
             action_ph=self.actions_ph,
             states_ph=self.observations_ph,
             next_states_ph=self.next_states_ph,
+            training_step=self.fit_iterations,
+            restart_fitting=False,
         )
 
     def get_policy_params(self):
         return self.policy.trainable_vars
+
+    def optimize_dual(self, inputs_dict):
+        # Here we need to optimize dual through BFGS in order to obtain \eta
+        # value. Initialize dual function g(\theta, v). \eta > 0
+        # Init dual param values
+        param_eta_inv = 1.0
+
+        # Initial BFGS parameter values.
+        self.setParamEtaInv([param_eta_inv])
+
+        # Optimize through BFGS
+        with timed("optimizing dual"):
+
+            self.dual_before, self.dual_grad_before = self.sess.run(
+                [self.dual, self.dual_grad], feed_dict=inputs_dict
+            )
+
+            self.dual_optimizer.minimize(session=self.sess, feed_dict=inputs_dict)
+
+            self.dual_after, self.grad_after = self.sess.run(
+                [self.dual, self.dual_grad], feed_dict=inputs_dict
+            )
+
+        # Optimal values have been obtained
+        self.param_eta = self.sess.run(self.eta)
+        return self.dual_after
+
+    def project(self, inputs_dict):
+        # joint or disjoint projection
+        if self.projection_type == Projection.STATE_KERNEL:
+
+            # reassign the correct omega
+            with timed("projection"):
+                self.model_policy_tf_optimizer.minimize(
+                    session=self.sess, feed_dict=inputs_dict
+                )
+        elif self.projection_type == Projection.DISJOINT:
+            # Disjoint Projection
+            self.model_tf_optimizer.minimize(session=self.sess, feed_dict=inputs_dict)
+            self.policy_tf_optimizer.minimize(session=self.sess, feed_dict=inputs_dict)
+        elif self.projection_type == Projection.D_PROJECTION:
+            raise ValueError("Projection Type not supported")
+        else:
+            raise ValueError("Error in the definition of projection, see the Projections")
+
+    def log(
+        self,
+        inputs_dict,
+        omega_before,
+        theta_before,
+        omega_after,
+        theta_after,
+        samples_data,
+    ):
+        primal, summary_str = self.sess.run(
+            [self.primal, self.summarize], feed_dict=inputs_dict
+        )
+        delta_variables = theta_after - theta_before
+        norm_delta_var = np.linalg.norm(delta_variables)
+        delta_omega = omega_after - omega_before
+        norm_delta_omega = np.linalg.norm(delta_omega)
+        self.summary_writer.add_summary(summary_str, self.global_step)
+        # record all
+        logger.record_tabular("ITERATIONS", self.iteration)
+        logger.record_tabular("Theta", theta_after)
+        logger.record_tabular("ThetaBefore", theta_before)
+        logger.record_tabular("Primal", primal)
+        logger.record_tabular("OmegaBefore", omega_before)
+        logger.record_tabular("Omega", omega_after)
+        logger.record_tabular("NormDeltaOmega", norm_delta_omega)
+        logger.record_tabular("Eta", self.param_eta)
+        logger.record_tabular("NormDeltaVar", norm_delta_var)
+        logger.record_tabular("DeltaOmega", delta_omega)
+        logger.record_tabular("Epsilon", self.kappa)
+        logger.record_tabular("ReturnsMean", np.mean(samples_data["reward_list"]))
+        logger.record_tabular("ReturnsStd", np.std(samples_data["reward_list"]))
+        logger.record_tabular("RewardMean", np.mean(samples_data["reward_list"]))
+        logger.record_tabular("RewardStd", np.std(samples_data["rewards"]))
+        logger.record_tabular("TimestepsMean", np.mean(samples_data["timesteps"]))
+        logger.record_tabular("TimestepsStd", np.std(samples_data["timesteps"]))
+        logger.record_tabular("DualReg", self.L2_reg_dual)
+        logger.record_tabular("LossReg", self.L2_reg_loss)
+        logger.record_tabular("Wins", samples_data["wins"])
+        logger.record_tabular("Traj", samples_data["traj"])
+        logger.record_tabular("ConfortViolation", samples_data["confort_violation"])
+        logger.dump_tabular()

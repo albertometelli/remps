@@ -74,7 +74,7 @@ class OneParameterPolicy(Policy):
     def from_sigm_to_theta(self, param):
         return -np.log(self.width / (param - self.offset) - 1) / self.k
 
-    def getTheta(self):
+    def get_theta(self):
         return self.width * (1 / (1 + tf.exp(-self.k * self.theta))) + self.offset
 
     def get_policy_network(self):

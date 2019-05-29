@@ -3,6 +3,7 @@ import os.path
 from datetime import datetime
 
 import numpy as np
+
 # log
 from baselines import logger
 from baselines.common.misc_util import set_global_seeds
@@ -11,8 +12,9 @@ import remps.runners.remps_runner as remps_runner
 from remps.envs.cartpole import CartPole
 from remps.envs.chain import NChainEnv
 from remps.envs.torcs.torcs import Torcs
-from remps.model_approx.cartpole_model_action_noise import \
-    CartPoleModel as CartPoleActionNoise
+from remps.model_approx.cartpole_model_action_noise import (
+    CartPoleModel as CartPoleActionNoise,
+)
 from remps.model_approx.chain_model import ChainModel
 from remps.model_approx.nn_model import NNModel
 from remps.model_approx.torcs_model_simple import TorcsModel
@@ -44,7 +46,7 @@ def runExp(
     env_id,
     seed,
     exact,
-    **kwargs
+    **kwargs,
 ):
 
     set_global_seeds(seed)
@@ -91,7 +93,7 @@ def runExp(
     # initialize environment parameters
     if random_init:
         omega_bounds = env.get_params_bounds()
-        omega = np.random.uniform(low=omega_bounds[:, 0], high=omega_bounds[:,1])
+        omega = np.random.uniform(low=omega_bounds[:, 0], high=omega_bounds[:, 1])
     env.set_params(omega)
 
     algo_name = "REMPS"
@@ -160,7 +162,7 @@ def runExp(
         omega=omega,
         restore_variables=restore_variables,
         exact=exact,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -197,7 +199,9 @@ def parse_args():
     parser.add_argument(
         "--omega", help="Initial configurable parameters", type=float, default=9
     )
-    boolean_flag(parser, "random-init", help="If true randomly initialize omega", default=False)
+    boolean_flag(
+        parser, "random-init", help="If true randomly initialize omega", default=False
+    )
     parser.add_argument(
         "--start-from-iteration",
         help="Iteration number from which to start",
@@ -221,12 +225,17 @@ def parse_args():
     )
     parser.add_argument("--title", type=str, default="policy")
     parser.add_argument("--seed", type=int, default=1000)
-    boolean_flag(parser, "exact", help="whether the environment model is exact or approximated", default=True)
+    boolean_flag(
+        parser,
+        "exact",
+        help="whether the environment model is exact or approximated",
+        default=True,
+    )
     # -----------------------------------------------------
     # --------------- REMPS PARAMETER ---------------------
     # -----------------------------------------------------
     parser.add_argument(
-        "--epsilon", type=float, default=1e-3, help="Constraint on KL divergence"
+        "--kappa", type=float, default=1e-3, help="Constraint on KL divergence"
     )
     parser.add_argument(
         "--dual-reg", type=float, default=0.0, help="Dual Regularization"

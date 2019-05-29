@@ -4,12 +4,14 @@ import numpy as np
 
 
 class ModelApproximator(ABC):
+
+    @abstractmethod
     @property
     def trainable_vars(self):
         pass
 
     @abstractmethod
-    def store_data(self, X: np.array, Y: np.array):
+    def store_data(self, X: np.array, Y: np.array, **kwargs):
         """
         Store transitions
         :param X: starting state, action and params
@@ -19,11 +21,15 @@ class ModelApproximator(ABC):
         pass
 
     @abstractmethod
+    def __call__(self, *args, **kwargs):
+        pass
+
+    @abstractmethod
     def get_probability(self):
         pass
 
     @abstractmethod
-    def fit(self, *args):
+    def fit(self, *args, **kwargs):
         """
         Fit the Model using X and Y provided in store data
         :param args: additional arguments

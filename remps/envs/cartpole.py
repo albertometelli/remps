@@ -59,8 +59,7 @@ class CartPole(ConfMDP):
         self.action_space = spaces.Discrete(2)
         self.observation_space = spaces.Box(-high, high)
         self.observation_space_dim = 4
-        self.action_space_size = 2
-        self.n_actions = 2
+        self.n_actions = 2  # Left of Right
 
         self.seed()
         self.viewer = None
@@ -78,12 +77,14 @@ class CartPole(ConfMDP):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def set_params(self, *args):
-        if np.isscalar(args[0]):
-            init_params = args[0]
-            self.force_mag = init_params
+    def set_params(self, omega, *args):
+        if np.isscalar(omega):
+            self.force_mag = omega
         else:
-            self.force_mag = args[0][0, 0]
+            # check the number of elements inside array is exactly 1
+            assert omega.size == 1
+            omega = omega.flatten()
+            self.force_mag = omega[0]
 
     def step(self, action):
 
