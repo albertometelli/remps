@@ -1,6 +1,3 @@
-[submodule "gym_torcs"]
-	path = gym_torcs
-	url = https://github.com/EmanueleGhelfi/gym_torcs.git
 [submodule "libs/gym_torcs"]
 	path = libs/gym_torcs
 	url = https://github.com/EmanueleGhelfi/gym_torcs.git
