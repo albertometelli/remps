@@ -2,8 +2,6 @@ import os.path
 
 import baselines.common.tf_util as U
 import matplotlib as mpl
-
-mpl.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
@@ -13,6 +11,9 @@ from tensorflow.contrib.distributions import Normal
 
 from remps.model_approx.model_approximator import ModelApproximator
 from remps.utils.utils import get_default_tf_dtype
+
+mpl.use("Agg")
+
 
 
 def reduce_std(x, axis, dtype=tf.float32):

@@ -26,8 +26,9 @@ class Projection(Enum):
     Projection types.
     State kernel: joint projection
     DISJOINT: Project independently policy and model
-    D_PROJECTION: Idea projection of the stationary distribution
+    D_PROJECTION: Ideal projection of the stationary distribution
     """
+
     STATE_KERNEL = 0
     DISJOINT = 1
     D_PROJECTION = 2
@@ -40,22 +41,22 @@ class REMPS:
 
     def __init__(
         self,
-        kappa: float =1e-3,  # 0.001,
-        L2_reg_dual: float=0.0,  # 1e-7,# 1e-5,
-        L2_reg_loss: float=0.0,
-        max_opt_itr: int=1000,
+        kappa: float = 1e-3,
+        L2_reg_dual: float = 0.0,  # 1e-7,# 1e-5,
+        L2_reg_loss: float = 0.0,
+        max_opt_itr: int = 1000,
         tf_optimizer=ScipyOptimizerInterface,
-        model: ModelApproximator=None,
-        policy: Policy=None,
-        env: ConfMDP =None,
-        projection_type: Projection =Projection.STATE_KERNEL,  # State kernel or disjoint
-        training_set_size: int=5000,
-        exact: bool=False,
-        restart_fitting: bool=False,
-        fit_iterations: int=40000,
-        refit_iterations: int=1000,
-        refit: int=False,
-        refit_every_iterations: int=100,
+        model: ModelApproximator = None,
+        policy: Policy = None,
+        env: ConfMDP = None,
+        projection_type: Projection = Projection.STATE_KERNEL,  # State kernel or disjoint
+        training_set_size: int = 5000,
+        exact: bool = False,
+        restart_fitting: bool = False,
+        fit_iterations: int = 40000,
+        refit_iterations: int = 1000,
+        refit: int = False,
+        refit_every_iterations: int = 100,
         **kwargs,
     ):
         """
@@ -137,7 +138,7 @@ class REMPS:
         # ----------------------------------------
         # Optimizers
         # ----------------------------------------
-        self.model_policy_tf_optimizer = None
+        self.state_kernel_proj_opt = None
         self.model_tf_optimizer = None
         self.dual_optimizer = None
 
@@ -202,7 +203,7 @@ class REMPS:
 
         # Get Policy
         policy_tf, _ = self.policy(self.observations_ph)
-        model_log_prob_tf, model_prob_tf = self.model(
+        model_logli, model_prob_tf = self.model(
             self.observations_ph,
             self.actions_ph,
             self.next_states_ph,
@@ -216,12 +217,11 @@ class REMPS:
         self.param_eta_inv_ph = tf.get_variable(name="eta", shape=(), dtype=self.dtype)
         eta = 1 / self.param_eta_inv_ph
 
-        # Model loglikelihood
-        model_logli = model_log_prob_tf
-
         # Policy and model loss loss (KL divergence, to be minimized)
-        state_kernel_before_sum = tf.multiply(model_prob_tf, policy_tf)
-        state_kernel = tf.reduce_sum(state_kernel_before_sum, axis=1, keepdims=True)
+        # state_kernel = \sum_a p(s'| s,a) * p(a|s)
+        state_kernel = tf.reduce_sum(
+            tf.multiply(model_prob_tf, policy_tf), axis=1, keepdims=True
+        )
 
         # algorithm information
         weights = tf.exp(self.rewards_ph / eta - tf.reduce_max(self.rewards_ph / eta))
@@ -231,7 +231,7 @@ class REMPS:
         mean_weights = tf.reduce_mean(weights)
 
         # For regularization add L2 reg term
-        model_policy_loss = -tf.reduce_sum(
+        state_kernel_objective = -tf.reduce_sum(
             weights * tf.log(state_kernel + self.epsilon_small)
         )
 
@@ -239,17 +239,18 @@ class REMPS:
         # Loss function using L2 Regularization
         regularizers = [tf.reduce_sum(tf.square(x)) for x in self.policy.trainable_vars]
         total_loss = tf.add_n(regularizers)
-        model_policy_loss += self.L2_reg_loss * total_loss
+        state_kernel_objective += self.L2_reg_loss * total_loss
 
         model_policy_grad_loss = tf.gradients(
-            model_policy_loss, self.policy.trainable_vars + self.model.trainable_vars
+            state_kernel_objective,
+            self.policy.trainable_vars + self.model.trainable_vars,
         )
         # bound model param
         var_to_bounds = self.model.get_variables_to_bound()
 
         # Optimizer
-        self.model_policy_tf_optimizer = self.tf_optimizer(
-            model_policy_loss,
+        self.state_kernel_proj_opt = self.tf_optimizer(
+            state_kernel_objective,
             var_list=self.model.trainable_vars + self.policy.trainable_vars,
             var_to_bounds=var_to_bounds,
             options={"maxiter": 100, "maxfun": 100},
@@ -315,7 +316,7 @@ class REMPS:
 
         self.policy_tf = policy_tf
         self.model_logli = model_logli
-        self.model_policy_loss = model_policy_loss
+        self.model_policy_loss = state_kernel_objective
         self.dual = dual
         self.dual_grad = dual_grad
         self.primal = primal
@@ -432,7 +433,7 @@ class REMPS:
         #################
         self.optimize_dual(inputs_dict)
 
-        print(f"Parameters found: {self.param_eta}")
+        logger.log(f"Parameters found: {self.param_eta}", logger.INFO)
 
         # save variables before projection
         omega_before = np.array(self.sess.run(self.model.get_omega()))
@@ -547,7 +548,7 @@ class REMPS:
 
             # reassign the correct omega
             with timed("projection"):
-                self.model_policy_tf_optimizer.minimize(
+                self.state_kernel_proj_opt.minimize(
                     session=self.sess, feed_dict=inputs_dict
                 )
         elif self.projection_type == Projection.DISJOINT:
@@ -557,7 +558,9 @@ class REMPS:
         elif self.projection_type == Projection.D_PROJECTION:
             raise ValueError("Projection Type not supported")
         else:
-            raise ValueError("Error in the definition of projection, see the Projections")
+            raise ValueError(
+                "Error in the definition of projection, see the Projections"
+            )
 
     def log(
         self,

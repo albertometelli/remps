@@ -14,11 +14,6 @@ from remps.envs.steps import CartPoleStepActionNoise as stepActionNoise
 
 
 class CartPole(ConfMDP):
-    def get_params_bounds(self) -> np.array:
-        pass
-
-    def get_params(self) -> np.array:
-        pass
 
     metadata = {"render.modes": ["human", "rgb_array"], "video.frames_per_second": 50}
 
@@ -30,6 +25,8 @@ class CartPole(ConfMDP):
         self.length = 0.5  # actually half the pole's length
         self.polemass_length = self.masspole * self.length
         self.force_mag = 10.0
+        self.force_mag_min = 0
+        self.force_mag_max = 30
         self.tau = 0.02  # seconds between state updates
 
         # noise
@@ -72,6 +69,16 @@ class CartPole(ConfMDP):
     @property
     def observation_space_size(self):
         return self.observation_space_dim
+
+    @property
+    def action_space_size(self):
+        return self.n_actions
+
+    def get_params_bounds(self) -> np.array:
+        return np.array([[self.force_mag_min, self.force_mag_max]])
+
+    def get_params(self) -> np.array:
+        return self.force_mag
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)

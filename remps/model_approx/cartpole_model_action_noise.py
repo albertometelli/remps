@@ -2,7 +2,8 @@ import math
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.contrib.distributions import MultivariateNormalFullCovariance as mvn
+from tensorflow.contrib.distributions import \
+    MultivariateNormalFullCovariance as mvn
 
 from remps.model_approx.model_approximator import ModelApproximator
 from remps.utils.utils import get_default_tf_dtype

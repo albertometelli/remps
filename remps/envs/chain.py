@@ -23,19 +23,6 @@ class NChainEnv(ConfMDP):
     http://ceit.aut.ac.ir/~shiry/lecture/machine-learning/papers/BRL-2000.pdf
     """
 
-    def render(self, mode="human"):
-        pass
-
-    def get_params_bounds(self) -> np.array:
-        return np.array([[self.slip_min, self.slip_max]])
-
-    @property
-    def observation_space_size(self):
-        return self.observation_space_dim
-
-    def get_params(self) -> np.array:
-        return np.array([self.slip])
-
     def __init__(self, n=2, slip=0.2, small=2, large1=10, large2=8, max_steps=500):
         self.n = n
         self.slip = slip  # probability of 'slipping' an action
@@ -53,6 +40,23 @@ class NChainEnv(ConfMDP):
         self.max_steps = max_steps
         self.steps = 0
         self.param = 0.5
+
+    @property
+    def action_space_size(self) -> int:
+        return self.action_space.n
+
+    def render(self, mode="human"):
+        pass
+
+    def get_params_bounds(self) -> np.array:
+        return np.array([[self.slip_min, self.slip_max]])
+
+    @property
+    def observation_space_size(self):
+        return self.observation_space_dim
+
+    def get_params(self) -> np.array:
+        return np.array([self.slip])
 
     def set_params(self, omega: Union[float, np.array]):
         if isinstance(omega, float):
@@ -94,7 +98,6 @@ class NChainEnv(ConfMDP):
         done = False
         if self.steps >= self.max_steps:
             done = True
-        # gamma??
         s = np.zeros(2)
         s[self.state] = 1
         return s, reward, done, {}

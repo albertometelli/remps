@@ -4,7 +4,6 @@ import numpy as np
 
 
 class ModelApproximator(ABC):
-
     @abstractmethod
     @property
     def trainable_vars(self):

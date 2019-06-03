@@ -54,7 +54,6 @@
 
 import getopt
 import os
-
 # for Python3-based torcs python robot client
 import socket
 import sys

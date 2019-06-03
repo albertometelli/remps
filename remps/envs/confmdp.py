@@ -33,6 +33,15 @@ class ConfMDP(gym.Env):
         """
         pass
 
+    @property
+    @abstractmethod
+    def action_space_size(self) -> int:
+        """
+        Returns the size of the action space
+        :return:
+        """
+        pass
+
     @abstractmethod
     def get_params(self) -> np.array:
         """

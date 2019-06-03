@@ -1,12 +1,9 @@
-import time
-from contextlib import contextmanager
 from multiprocessing import Queue
 
 import baselines.common.tf_util as U
 import numpy as np
 import tensorflow as tf
 from baselines import logger
-from baselines.common import colorize
 
 from remps.algo.remps import REMPS, Projection
 from remps.envs.confmdp import ConfMDP
@@ -23,25 +20,25 @@ def train(
     model_approximator: ModelApproximator,
     eval_steps: int = 4,
     eval_freq: int = 5,
-    n_trajectories=20,
-    iteration_number=2000,
-    gamma=1,
+    n_trajectories: int = 20,
+    iteration_number: int = 2000,
+    gamma: float = 1,
     render=False,
-    checkpoint_file="tf_checkpoint/general/model.ckpt",
-    restore_variables=False,
-    save_variables=True,
-    logdir=None,
-    log=False,
+    checkpoint_file: str = "tf_checkpoint/general/model.ckpt",
+    restore_variables: bool = False,
+    save_variables: bool = True,
+    logdir: str = None,
+    log: bool = False,
     omega=5,
-    kappa=1e-5,
-    training_set_size=500,
-    normalize_data=False,
-    dual_reg=0.0,
-    policy_reg=0.0,
-    exact=False,
-    num_processes=1,
-    load_data=True,
-    **kwargs
+    kappa: float = 1e-5,
+    training_set_size: int = 500,
+    normalize_data: bool = False,
+    dual_reg: float = 0.0,
+    policy_reg: float = 0.0,
+    exact: bool = False,
+    num_processes: int = 1,
+    load_data: bool = True,
+    **kwargs,
 ):
     """
     Runner for the REMPS algorithm.
@@ -63,13 +60,13 @@ def train(
     :param log: if true the agents logs the actions probability
     :param omega: initial environment parameters
     :param kappa: parameter of remps environment
-    :param training_set_size:
-    :param normalize_data:
-    :param dual_reg:
-    :param policy_reg:
-    :param exact:
-    :param num_processes:
-    :param load_data:
+    :param training_set_size: number of samples contained in the training set
+    :param normalize_data: Whether to normalize data from the training set
+    :param dual_reg: regularization on the dual
+    :param policy_reg: regularization on the policy
+    :param exact: whether the model approximation is exact or not
+    :param num_processes: number of processing
+    :param load_data: whether to load stored data
     :param kwargs:
     :return:
     """
@@ -135,7 +132,7 @@ def train(
         # make sure all variables are initialized
         sess.run(tf.assert_variables_initialized())
 
-        print("Collecting Data")
+        logger.log("Collecting Data", level=logger.INFO)
 
         # Collect data for model fitting
         if not load_data:
@@ -154,15 +151,12 @@ def train(
             # store data in the agent
             agent.store_data(x, y, normalize_data)
 
-            print("Data collected")
+            logger.log("Data collected", logger.INFO)
 
         # fit the model
         agent.fit()
 
-        print("Model fitted")
-
-        reward_mean_to_plot = list()
-        reward_std_to_plot = list()
+        logger.log("Model fitted", logger.INFO)
 
         # set configurable parameters
         env.set_params(omega)
@@ -228,12 +222,11 @@ def train(
             }
 
             # print statistics
-            print("Training steps: ", n)
-            print("Number of wins: ", wins)
-            print("Percentage of wins: ", (wins / n_trajectories) * 100)
-            print("Average reward: ", np.mean(reward_list))
-            print("Avg timesteps: ", np.mean(timesteps))
-            print("Win with small vel: ", small_vel)
+            logger.log(f"Training steps: {n}", logger.INFO)
+            logger.log(f"Number of wins: {wins}", logger.INFO)
+            logger.log(f"Percentage of wins: {(wins/n_trajectories)*100}", logger.INFO)
+            logger.log(f"Average reward: {np.mean(reward_list)}", logger.INFO)
+            logger.log(f"Avg timesteps: {np.mean(timesteps)}")
 
             # learning routine
             with timed("training"):
@@ -254,7 +247,7 @@ def train(
                 # evaluation loop
                 for i in range(eval_steps):
 
-                    print("Evaluating...")
+                    logger.log("Evaluating...", logger.INFO)
                     state = env.reset()
                     done = False
                     # gamma_cum is gamma^t
@@ -286,16 +279,11 @@ def train(
 
                     eval_rewards.append(cum_reward)
 
-                print("Average reward", np.mean(eval_rewards))
-
-                reward_mean_to_plot.append(np.mean(eval_rewards))
-                reward_std_to_plot.append(np.std(eval_rewards))
-
                 # save variables
                 if save_variables:
                     save_path = saver.save(sess, checkpoint_file)
-                    print("Steps: ", n)
-                    print("Model saved in path: %s" % save_path)
+                    logger.log(f"Steps: {n}", logger.INFO)
+                    logger.log(f"Model saved in path: {save_path}", logger.INFO)
 
         # Close the env
         env.close()
@@ -303,7 +291,7 @@ def train(
         # save variables
         if save_variables:
             save_path = saver.save(sess, checkpoint_file)
-            print("Model saved in path: %s" % save_path)
+            logger.log(f"Model saved in path: {save_path}")
 
         # exit workers
         for i in range(num_processes):
