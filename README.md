@@ -74,7 +74,7 @@ Run the torcs experiment with:
 
 # Authors
 - Alberto Maria Metelli
-- Emanuele Ghelfi [Scholar](https://scholar.google.it/citations?hl=it&view_op=list_works&gmla=AJsN-F5qKVISBHxU3To19s-Iq8xA1c3BivcIXYD1DKEvcky2mcdfiF3lMg4JjrmOE8fK1Jiikj9XfUyF54s8HnXJMYeBdpPLwaCJ8lMlVhHOy178vQAvGwA&user=JJqNoGQAAAAJ) [Github](https://github.com/EmanueleGhelfi) [Website](emanueleghelfi.github.io) [Twitter](twitter.com/manughelfi)
+- Emanuele Ghelfi [emanuele.ghelfi@mail.polimi.it](emanuele.ghelfi@mail.polimit.it) [Scholar](https://scholar.google.it/citations?hl=it&view_op=list_works&gmla=AJsN-F5qKVISBHxU3To19s-Iq8xA1c3BivcIXYD1DKEvcky2mcdfiF3lMg4JjrmOE8fK1Jiikj9XfUyF54s8HnXJMYeBdpPLwaCJ8lMlVhHOy178vQAvGwA&user=JJqNoGQAAAAJ) [Github](https://github.com/EmanueleGhelfi) [Website](emanueleghelfi.github.io) [Twitter](twitter.com/manughelfi)
 - Marcello Restelli
 
 
