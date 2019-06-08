@@ -1,10 +1,10 @@
-import baselines.common.tf_util as U
 import numpy as np
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
 from sklearn.utils.validation import check_array, check_X_y
 from tensorflow.contrib.distributions import Normal
 
+import baselines.common.tf_util as U
 from remps.model_approx.model_approximator import ModelApproximator
 from remps.utils.utils import get_default_tf_dtype
 

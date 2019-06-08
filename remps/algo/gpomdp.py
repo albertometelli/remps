@@ -1,9 +1,9 @@
-import baselines.common.tf_util as U
 import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
-from baselines import logger
 
+import baselines.common.tf_util as U
+from baselines import logger
 from remps.utils.utils import (flat_and_pad, get_default_tf_dtype,
                                get_tf_optimizer)
 

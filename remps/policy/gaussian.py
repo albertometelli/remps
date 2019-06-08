@@ -1,4 +1,3 @@
-import numpy as np
 import tensorflow as tf
 
 from remps.policy.policy import Policy
@@ -19,10 +18,7 @@ class Gaussian(Policy):
         Simple network: from state space to action space
         Start from a random policy, all weights equal to 0
         @param state_space: dimension of state space
-        @param actions_space: dimension of action space
-        @param trajectory_size: number of trajectories collected for estimating the gradient
-        @param checkpoint_file: name of checkpoint file in which to save variables
-        @param restore: True if need to restore variables
+        @param action_space: dimension of action space
         """
         # net params
         super().__init__(name)
@@ -108,15 +104,6 @@ class Gaussian(Policy):
             self._pi_prob = self.dist.prob(taken_actions)
             self._log_pi = self.dist.log_prob(taken_actions)
         return self._pi_prob, self._log_pi
-
-    def pi(self, s, log=True):
-        """
-        Selects an action according to the net probability
-        @param s: state vector
-        @param log: if True log probabilities
-        """
-        ac = self.sess.run(self._pi, feed_dict={self.state: s})[0]
-        return ac
 
     def get_policy_network(self):
         return self._pi

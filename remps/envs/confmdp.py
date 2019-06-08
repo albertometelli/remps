@@ -1,7 +1,8 @@
 from abc import abstractmethod
 
-import gym
 import numpy as np
+
+import gym
 
 
 class ConfMDP(gym.Env):

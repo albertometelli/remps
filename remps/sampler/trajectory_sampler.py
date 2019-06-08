@@ -1,16 +1,12 @@
 import os
 import os.path
-import time
 from copy import copy
-from multiprocessing import Event, Process, Queue
-from multiprocessing.pool import Pool
+from multiprocessing import Process
 
-import baselines.common.tf_util as U
 import numpy as np
 import tensorflow as tf
-from baselines import logger
-from baselines.common import set_global_seeds
 
+import baselines.common.tf_util as U
 from remps.utils.utils import get_default_tf_dtype
 
 
@@ -60,7 +56,6 @@ class SamplingWorker(Process):
                 elif message == "exit":
                     print("[Worker {}] Exiting...".format(os.getpid()))
                     self.env.close()
-                    done = True
                     break
         sess.close()
 

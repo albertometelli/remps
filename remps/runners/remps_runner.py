@@ -1,15 +1,18 @@
+import os
 from multiprocessing import Queue
 
-import baselines.common.tf_util as U
 import numpy as np
 import tensorflow as tf
-from baselines import logger
 
+import baselines.common.tf_util as U
+from baselines import logger
 from remps.algo.remps import REMPS, Projection
 from remps.envs.confmdp import ConfMDP
+from remps.envs.torcs.torcs import Torcs
 from remps.model_approx.model_approximator import ModelApproximator
 from remps.policy.policy import Policy
-from remps.runners.envRunner import runEnv
+from remps.runners.env_runner import run_env
+from remps.runners.torcs_runner import collect_data
 from remps.sampler.parallel_sampler import SamplingWorker
 from remps.utils.logging import timed
 
@@ -113,6 +116,23 @@ def train(
     for w in workers:
         w.start()
 
+    # Collect data for model fitting
+    # torcs model fitting needs to be done before the session initialization
+    # due to multiprocessing issues
+    if not load_data and isinstance(env, Torcs):
+        if isinstance(env, Torcs):
+            x, y, avg_rew, ret = collect_data(
+                env,
+                policy=policy,
+                total_n_samples=training_set_size,
+                n_params=2,
+                initial_port=env.port + 1000,
+            )
+            logger.log(
+                f"Data collection terminate. Avg rew: {np.mean(avg_rew)}, Avg ret: {np.mean(ret)}",
+                logger.INFO,
+            )
+
     with U.single_threaded_session() as sess:
 
         # initialization with session
@@ -134,9 +154,8 @@ def train(
 
         logger.log("Collecting Data", level=logger.INFO)
 
-        # Collect data for model fitting
-        if not load_data:
-            x, y = runEnv(
+        if not load_data and not isinstance(env, Torcs):
+            x, y = run_env(
                 env,
                 episode_count=1,
                 bins=200,
@@ -151,7 +170,7 @@ def train(
             # store data in the agent
             agent.store_data(x, y, normalize_data)
 
-            logger.log("Data collected", logger.INFO)
+            logger.log("Data Stored", logger.INFO)
 
         # fit the model
         agent.fit()
@@ -235,6 +254,11 @@ def train(
             # Configure environments with
             # parameters returned by the agent
             env.set_params(omega)
+
+            # Only TORCS: we kill torcs every 10 iterations due to a memory leak
+            if n % 10 == 0 and isinstance(env, Torcs):
+                print("Killing torcs")
+                os.system("ps | grep torcs | awk '{print $1}' | xargs kill -9")
 
             # -------------------------------------
             # --------- Evaluation ----------------

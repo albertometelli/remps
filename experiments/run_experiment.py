@@ -3,11 +3,11 @@ import os.path
 from datetime import datetime
 
 import numpy as np
+
+import remps.runners.remps_runner as remps_runner
 # log
 from baselines import logger
 from baselines.common.misc_util import set_global_seeds
-
-import remps.runners.remps_runner as remps_runner
 from remps.envs.cartpole import CartPole
 from remps.envs.chain import NChainEnv
 from remps.envs.torcs.torcs import Torcs
@@ -51,22 +51,29 @@ def runExp(
 
     # setup environments and policy
     if env_id == 1:
+
         env = CartPole(max_steps=max_steps)
         env_name = "cartPole"
         policy = Discrete(
             env.observation_space.shape[0], env.action_space_size, hidden_layer_size
         )
         model_approx = CartPoleActionNoise()
+
         if not exact:
             model_approx = NNModel(env.observation_space_size, 1, name=env_name)
+
     elif env_id == 2:
+
         env = Torcs(visual=False, port=kwargs["initial_port"])
+
         policy = Gaussian(
             env.observation_space_size,
             env.action_space_size,
             hidden_layer_size=hidden_layer_size,
         )
+
         env_name = "TORCS"
+
         model_approx = TorcsModel(
             env.observation_space_size,
             env.action_space_size,
@@ -74,6 +81,7 @@ def runExp(
         )
 
     elif env_id == 3:
+
         env = NChainEnv(max_steps=max_steps)
         env_name = "chain"
 
@@ -85,6 +93,7 @@ def runExp(
         policy = OneParameterPolicy(init_theta=init_theta)
 
         model_approx = ChainModel()
+
     else:
         raise ValueError("Wrong environment index")
 
@@ -245,6 +254,12 @@ def parse_args():
         "--training-set-size", type=int, default=500, help="Training set size"
     )
     boolean_flag(parser, "normalize-data", default=True)
+
+    # -----------------------------------------------------
+    # --------------- TORCS PARAMETER ---------------------
+    # -----------------------------------------------------
+    parser.add_argument('--initial-port', type=int, default=5000)
+    boolean_flag(parser, 'load-policy', default=False)
 
     args = parser.parse_args()
     dict_args = vars(args)

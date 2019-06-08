@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def runEnv(
+def run_env(
     env,
     episode_count=100,
     n_samples_per_omega=100,
@@ -15,16 +15,6 @@ def runEnv(
     """
     Simple runner, takes an environment, run a random policy and records everything
     """
-
-    # builds up a matrices of (state, action) and next state
-    # inputs = np.zeros((episode_count*timestep + 1,3))
-    # targets = np.zeros((episode_count*timestep + 1,2))
-    inputs = None
-    targets = None
-
-    reward = 0
-    done = False
-
     if not grid:
         inputs = np.zeros((bins * n_samples_per_omega, env.observation_space_size + 1))
         targets = np.zeros((bins * n_samples_per_omega, env.observation_space_size))

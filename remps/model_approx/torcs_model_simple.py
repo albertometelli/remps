@@ -1,6 +1,5 @@
 import os.path
 
-import baselines.common.tf_util as U
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,11 +8,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.utils.validation import check_X_y
 from tensorflow.contrib.distributions import Normal
 
+import baselines.common.tf_util as U
 from remps.model_approx.model_approximator import ModelApproximator
 from remps.utils.utils import get_default_tf_dtype
 
 mpl.use("Agg")
-
 
 
 def reduce_std(x, axis, dtype=tf.float32):

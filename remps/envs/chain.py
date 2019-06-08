@@ -1,10 +1,10 @@
 from typing import Union
 
-import gym
 import numpy as np
+
+import gym
 from gym import spaces
 from gym.utils import seeding
-
 from remps.envs.confmdp import ConfMDP
 
 

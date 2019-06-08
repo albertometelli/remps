@@ -8,12 +8,12 @@ Follows the rllab implementation
 from enum import Enum
 from typing import Dict
 
-import baselines.common.tf_util as U
 import numpy as np
 import tensorflow as tf
-from baselines import logger
 from tensorflow.contrib.opt import ScipyOptimizerInterface
 
+import baselines.common.tf_util as U
+from baselines import logger
 from remps.envs.confmdp import ConfMDP
 from remps.model_approx.model_approximator import ModelApproximator
 from remps.policy.policy import Policy

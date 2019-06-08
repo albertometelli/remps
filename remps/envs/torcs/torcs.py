@@ -5,9 +5,9 @@ import xml.etree.ElementTree as ET
 from shutil import copyfile
 
 import numpy as np
-from gym import spaces
 
 import remps.envs.torcs.snakeoil3_gym as snakeoil3
+from gym import spaces
 from remps.envs.confmdp import ConfMDP
 
 

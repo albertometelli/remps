@@ -6,21 +6,21 @@ from datetime import datetime
 from multiprocessing import Event, Process, Queue
 from multiprocessing.pool import Pool
 
-import baselines.common.tf_util as U
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
-from baselines.common.tf_util import GetFlat, SetFromFlat
 from tensorflow.python import debug as tf_debug
 
+import baselines.common.tf_util as U
+from baselines.common.tf_util import GetFlat, SetFromFlat
 from remps.algo.gpomdp import GPOMDP
 from remps.algo.gradient_descent import Adam
 from remps.algo.remps_chain import REPMS
 from remps.envs.chain import NChainEnv
 from remps.policy.discrete import Discrete
-from remps.runners.envRunner import runEnv
-from remps.sampler.trajectorySampler import SamplingWorker
+from remps.runners.env_runner import run_env
+from remps.sampler.trajectory_sampler import SamplingWorker
 
 
 def trainModelPolicy(
@@ -271,7 +271,7 @@ def collectData(
 
     #     env.setParams(theta)
 
-    x, y = runEnv(
+    x, y = run_env(
         env,
         episode_count=episode_count,
         timestep=timesteps,
