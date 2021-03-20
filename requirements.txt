@@ -29,7 +29,7 @@ idna==2.8
 imageio==2.5.0
 imagesize==1.1.0
 isort==4.3.18
-Jinja2==2.10.1
+Jinja2==2.11.3
 joblib==0.13.2
 livereload==2.6.1
 llvmlite==0.28.0
