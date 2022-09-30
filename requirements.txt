@@ -30,7 +30,7 @@ imageio==2.5.0
 imagesize==1.1.0
 isort==4.3.18
 Jinja2==2.10.1
-joblib==0.13.2
+joblib==1.2.0
 livereload==2.6.1
 llvmlite==0.28.0
 lockfile==0.12.2
